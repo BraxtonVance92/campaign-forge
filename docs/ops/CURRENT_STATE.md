@@ -1,21 +1,31 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21 (CF-BOOT-001 merged; CF-VERIFY-001 dispatched).
+Last updated: 2026-07-21 (CF-VERIFY-001 merged; CF-RUN-001 in progress).
 
-## State: IN_PROGRESS — CF-VERIFY-001 (live GMI/Genblaze capability test)
+## State: IN_PROGRESS — CF-RUN-001 (smallest real product flow)
 
-The controller/CTO reviewed and approved the corrected sources of truth at exact SHA `9ae223920b0f71aed1831070a5ba9f4924683aec` ("APPROVE AS-IS"), and PR #1 was merged into `main` (`docs/ops/DECISION_LOG.md` D-012). The bootstrap gate is now cleared. Authorized face-and-voice video generation remains recorded as core product scope (D-010, D-011). CF-VERIFY-001 is authorized to run its two smallest GMI/Genblaze live test calls (voice cloning; avatar output format) up to a $5 sub-cap, using the existing GMI key (D-013); HeyGen is deferred and not to be used unless GMI proves unable to produce the required result.
+`CF-BOOT-001` and `CF-VERIFY-001` are both `MERGED`. `main` is at `f195833bd67236346f9865485be5b6a8424e3573` (merge commit for PR #2). `CF-RUN-001` — the first runtime application code in this repository — was dispatched directly by the founder/controller and is in progress on branch `feat/cf-run-001` (not yet merged).
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4` (merge commit for PR #1, containing the CF-BOOT-001 docs pack).
-- PR #1: `MERGED` (was draft/open; approved by controller/CTO at head `9ae223920b0f71aed1831070a5ba9f4924683aec`, then merged via standard merge commit — no branch protection was configured on `main` at merge time).
-- Active packet branch: `docs/cf-verify-001`, created from the merged `main`.
-- The exact current candidate SHA for any in-flight branch is not recorded in this file. A commit cannot contain its own resulting SHA, so any SHA written here as "current" becomes stale the instant that commit is made. The exact current candidate SHA is maintained in the relevant PR's metadata (`headRefOid`) and in checkpoint/review receipts, generated after the commit exists.
-- At the merged main SHA, the repository contains `README.md`, root `CLAUDE.md`, and the seven canonical `docs/` files. No runtime application source exists on `main`.
+- Main head SHA: `f195833bd67236346f9865485be5b6a8424e3573`.
+- PR #1: `MERGED`. PR #2: `MERGED`.
+- Active packet branch: `feat/cf-run-001`, created from the merged `main`.
+- The exact current candidate SHA for any in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
+- `main` now contains: `README.md`, root `CLAUDE.md`, the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, and `.github/workflows/cf-verify-001.yml` (prepared, not executed — no `GMI_API_KEY` secret has been added, no account funded, nothing triggered).
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
+
+### CF-RUN-001: what is real and evidenced (as of this commit, on `feat/cf-run-001`, not yet merged)
+
+- A FastAPI application (`app/`) implementing: project creation, authorized-video upload with a required consent attestation, checksum computation, structured persistence, an analysis trigger, and a minimal HTML display/restore page plus a JSON retrieval endpoint.
+- Upload validation (content type, size, non-empty file, required consent) is real and covered by automated tests.
+- The creator-profile response contract from `docs/canon/PRODUCT_CANON.md` is implemented as a validated Pydantic model and its parsing logic is tested against both valid and deliberately malformed fixtures.
+- Persistence uses a storage abstraction with three implementations: `B2Storage` (real, production-intended, Backblaze B2 via its S3-compatible API), `LocalDiskStorage` (an explicitly labeled fallback used automatically when B2 credentials are absent — as they are in this environment), and `InMemoryStorage` (tests only). 30 automated tests pass (`pytest tests/`), and the full flow was additionally exercised manually against a running local server: a real file was uploaded, really written to `.local_storage/` on disk, the display page showed the real persisted metadata, and analysis correctly reported itself as blocked and that blocked state was still visible after a fresh request (the realistic analogue of "restore after refresh" for a running server backed by durable storage).
+- **Real GMI analysis has not run.** `GMI_API_KEY` is not present in this environment. The analysis client (`app/analysis.py`) is fully implemented for a real GMI chat-completions call but its live HTTP path is untested against a real response; one test proves the client's parsing/response-handling logic using a mocked HTTP layer, clearly labeled as such and never conflated with a real call.
+- **Real Backblaze B2 persistence has not run.** B2 credentials are also not present in this environment — a second blocker beyond the one named in the dispatch instruction, surfaced here rather than assumed away. `B2Storage` is implemented against boto3's S3-compatible client but has not been exercised against a real bucket.
+- Not built, per explicit scope: voice cloning, avatar/face generation, publishing, billing, authentication expansion, CI/deployment changes.
 
 ### Reported history, not repository-verified
 
@@ -28,16 +38,14 @@ These claims do not establish that the GitHub repository contains the implementa
 
 ### Explicitly not verified/built in this repository
 
-- Real creator analysis.
-- Real consent capture and storage.
+- Real GMI/Genblaze creator analysis against a live API (client implemented, gated, untested live).
+- Real Backblaze B2 persistence against a live bucket (client implemented, gated, untested live).
 - Real cloned-voice generation.
 - Real face/avatar video generation.
 - Real playable rendered video output.
-- Genblaze orchestration.
-- Versioned creator profile persistence.
-- Real GMI image/video generation.
+- Genblaze orchestration (no Genblaze SDK call has been made yet; CF-RUN-001's analysis client calls GMI's chat API directly, not through Genblaze's `Pipeline`/`Step` — a documented gap to close in a later packet).
 - Exact automated spend reporting.
-- CI, reviewed merge (of runtime code — the CF-BOOT-001 merge was docs-only), repo-linked deployment, live acceptance, or any Render service.
+- CI, reviewed merge of runtime code (`feat/cf-run-001` is not yet merged), repo-linked deployment, live acceptance, or any Render service.
 
 ## External facts verified 2026-07-21
 
@@ -45,23 +53,16 @@ These claims do not establish that the GitHub repository contains the implementa
 - Required stack: Backblaze B2 plus Genblaze; GMI Cloud is optional but supported.
 - Required submission: working URL, repository/setup instructions, providers/models, B2/Genblaze explanation, and public demo video under three minutes.
 - Judging criteria are equally weighted: utility, production readiness, B2 orchestration, Genblaze use.
-- Genblaze SDK v0.5.0 (released 2026-07-17) is an orchestration framework (Pipeline/Step/ObjectStorageSink/Manifest); it does not generate media itself. It has provider adapters for GMICloud, NVIDIA NIM, OpenAI, Google, Runway, Luma, Decart (video/image) and GMICloud, ElevenLabs, MiniMax, NVIDIA NIM, OpenAI, Stability, LMNT, Hume, AssemblyAI (audio). Source: https://github.com/backblaze-labs/genblaze (accessed 2026-07-21).
-- GMI Cloud REST API base is `https://api.gmi-serving.com/v1`, Bearer-token auth, OpenAI-compatible for chat models. Source: https://docs.gmicloud.ai/ (accessed 2026-07-21).
-- GMI Cloud lists a voice-clone model (`minimax-audio-voice-clone-speech-2.6-hd`) and an avatar model (`heygen-avatar-4`, delivered as a persistent WebRTC streaming session, not confirmed to produce a downloadable batch video file). Whether Genblaze's `Pipeline`/`Step` can actually invoke either of these end-to-end is UNKNOWN — the only public Genblaze/GMI sample repository demonstrates image-to-video only, not voice or avatar steps. Source: https://github.com/backblaze-labs/genblaze-gmicloud-pipeline; https://www.gmicloud.ai/en/blog/managed-generative-media-api (accessed 2026-07-21).
-- HeyGen's own direct API (outside Genblaze) offers a Digital Twin/Avatar V product with officially quoted pricing (Digital Twin creation $1.00/call; Avatar V video $0.0667/sec; pay-as-you-go, no free tier) and a consent flow where Level 1 (hosted webcam recording) is available to all customers without an Enterprise account. Training-footage length/resolution constraints (reported as 2-5 minutes, 720p+) were not confirmed on a directly-fetched official reference page this pass and remain to be re-verified. Sources: https://developers.heygen.com/docs/pricing; https://developers.heygen.com/docs/avatar-consent (accessed 2026-07-21).
-- Backblaze B2 storage costs $0.005/GB/month with 10GB free; download $0.01/GB with 1GB/day free and free egress up to 3x average storage. CORS rules (up to 100/bucket) and scoped application-key capabilities (`readFiles`, `writeFiles`, `listFiles`, etc.) are documented. Sources: https://www.backblaze.com/docs/cloud-storage-cross-origin-resource-sharing-rules; https://www.backblaze.com/docs/cloud-storage-application-keys (accessed 2026-07-21).
-- Render background workers and persistent disks require a paid plan (not available on the free tier); free web services get 750 instance-hours/month and spin down after 15 minutes idle. Starter web service is reported at $7/month, persistent disk at $0.25/GB/month. Sources: https://render.com/docs/background-workers; https://render.com/docs/free; https://render.com/docs/blueprint-spec (accessed 2026-07-21).
-
-Full findings, architecture options, and cost/latency estimates are recorded in the CF-VERIFY-001 research dossier delivered in the maker session on 2026-07-21; that dossier is the working reference until its findings are folded into a future revision of this file or `docs/roadmap/CURRENT_ROADMAP.md`.
+- Full GMI/Genblaze/HeyGen/B2/Render research, including the disclosed GMI blog-vs-quickstart-docs pricing discrepancy, is recorded in `docs/verification/CF-VERIFY-001.md`.
 
 ## Actual recorded spend
 
-Unknown. No billing export or provider dashboard evidence was supplied. The $50 ceiling remains binding; do not subtract estimates from it as if they were charges. All costs cited above are estimates or officially published rates, not actual recorded charges — no paid provider call has been made.
+Unknown/zero. No paid provider call has been made in this repository's history. The $50 total ceiling and CF-VERIFY-001's $20 prepaid-credit sub-boundary remain binding and unused.
 
 ## Blocker
 
-None from founder/controller input — provider (GMI first), credential (existing GMI key), and budget (part of the overall $50 ceiling, with a $5 sub-cap for this packet) are all resolved per D-013. The only remaining gate is technical: `GMI_API_KEY` must be confirmed present in the environment, without its value ever being exposed in chat, commits, or logs, before the first live call runs. The prior Sites source has not been recovered into GitHub.
+`CF-RUN-001`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented and tested. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret.
 
 ## Next safe action
 
-Confirm `GMI_API_KEY` is present (presence-only check, value never displayed), then run the two smallest GMI/Genblaze live test calls authorized in `CF-VERIFY-001`: voice cloning, and whether the GMI avatar endpoint can return a downloadable video. Record actual spend call-by-call against the $5 sub-cap.
+Controller/founder reviews `feat/cf-run-001`'s draft PR. If real credentials become available, wire them in and re-verify the previously-blocked paths for real; otherwise the next dependent block (Genblaze generation leg) can proceed once this slice is reviewed.
