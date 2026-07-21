@@ -6,7 +6,7 @@ Classification: `RUNTIME`
 
 Consumer: the CampaignForge product itself — this is the first runtime application code in this repository. Founder/controller dispatched this packet directly, in the same message that authorized merging its predecessor (`CF-VERIFY-001`, merged at main SHA `f195833bd67236346f9865485be5b6a8424e3573`), explicitly instructing continuous work without waiting for a separately-formatted packet.
 
-Status: `IN_PROGRESS`.
+Status: `MERGED` — approved as-is at exact SHA `1cb15c937422517657c3e85463df4e440a11bfb0` (76 tests passing locally and in CI) and merged into `main` at merge commit `c9ae8bb3926c2589043d8467244dc7f51586543f` with explicit founder confirmation (D-020). Not deployed; not live-verified. The next dependent block (below) is the next active packet once written.
 
 ### Founder intent and business outcome
 

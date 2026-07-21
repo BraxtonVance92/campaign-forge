@@ -1,23 +1,23 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21 (CF-VERIFY-001 merged; CF-RUN-001 in progress).
+Last updated: 2026-07-21 (CF-RUN-001 merged).
 
-## State: IN_PROGRESS — CF-RUN-001 (smallest real product flow)
+## State: REVIEW_READY / MERGED — CF-RUN-001 (smallest real product flow)
 
-`CF-BOOT-001` and `CF-VERIFY-001` are both `MERGED`. `main` is at `f195833bd67236346f9865485be5b6a8424e3573` (merge commit for PR #2). `CF-RUN-001` — the first runtime application code in this repository — was dispatched directly by the founder/controller and is in progress on branch `feat/cf-run-001` (not yet merged).
+`CF-BOOT-001`, `CF-VERIFY-001`, and `CF-RUN-001` are all `MERGED`. `main` is at `c9ae8bb3926c2589043d8467244dc7f51586543f` (merge commit for PR #3), which contains the first runtime application code in this repository. `CF-RUN-001` was dispatched directly by the founder/controller (D-018), reviewed across three revision rounds (D-014→D-019 amendments and fixes), approved as-is at exact SHA `1cb15c937422517657c3e85463df4e440a11bfb0` (76 tests passing locally and in CI), and merged with explicit founder confirmation for this specific first-runtime-merge (D-020).
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `f195833bd67236346f9865485be5b6a8424e3573`.
-- PR #1: `MERGED`. PR #2: `MERGED`.
-- Active packet branch: `feat/cf-run-001`, created from the merged `main`.
-- The exact current candidate SHA for any in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
-- `main` now contains: `README.md`, root `CLAUDE.md`, the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, and `.github/workflows/cf-verify-001.yml` (prepared, not executed — no `GMI_API_KEY` secret has been added, no account funded, nothing triggered).
+- Main head SHA: `c9ae8bb3926c2589043d8467244dc7f51586543f`.
+- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`.
+- CI on `main` post-merge: `SUCCESS` (push-triggered run of `.github/workflows/cf-run-001-tests.yml`).
+- The exact current candidate SHA for any future in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
+- `main` now contains the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, two workflows (`cf-verify-001.yml` — prepared, not executed; `cf-run-001-tests.yml` — real, passing), and the full `app/`/`tests/` runtime application described below.
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
 
-### CF-RUN-001: what is real and evidenced (as of this commit, on `feat/cf-run-001`, not yet merged)
+### CF-RUN-001: what is real and evidenced (merged into `main` at `c9ae8bb3926c2589043d8467244dc7f51586543f`)
 
 - A FastAPI application (`app/`) implementing: project creation, authorized-video upload with a required consent attestation, checksum computation, structured persistence, an analysis trigger, and a minimal HTML display/restore page plus a JSON retrieval endpoint.
 - Upload validation (content type, real file-signature check against magic bytes — not just the client-supplied MIME header —, size, non-empty file, required consent, one-source-per-project enforcement) is real and covered by automated tests.
@@ -50,7 +50,7 @@ These claims do not establish that the GitHub repository contains the implementa
 - Real playable rendered video output.
 - Genblaze orchestration (no Genblaze SDK call has been made yet; CF-RUN-001's analysis client calls GMI's chat API directly, not through Genblaze's `Pipeline`/`Step` — a documented gap to close in a later packet).
 - Exact automated spend reporting.
-- Reviewed merge of runtime code (`feat/cf-run-001` is not yet merged — R1/R2 approval of the exact head SHA is still outstanding), repo-linked deployment, live acceptance, or any Render service. (CI itself is real and passing as of this SHA — see "CI" above; only the merge/deployment/live-acceptance steps downstream of it remain unverified.)
+- Repo-linked deployment, live acceptance (a customer/judge actually using the deployed app), or any Render service. Runtime code is now merged (D-020) and CI-passing, but merged-and-tested is not the same as deployed-and-live-verified — no deployment of any kind has occurred yet.
 
 ## External facts verified 2026-07-21
 
@@ -66,8 +66,8 @@ Unknown/zero. No paid provider call has been made in this repository's history. 
 
 ## Blocker
 
-`CF-RUN-001`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented and tested. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret.
+`CF-RUN-001`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented, tested, and now merged. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret.
 
 ## Next safe action
 
-Controller/founder reviews `feat/cf-run-001`'s draft PR. If real credentials become available, wire them in and re-verify the previously-blocked paths for real; otherwise the next dependent block (Genblaze generation leg) can proceed once this slice is reviewed.
+If real GMI/B2 credentials become available, wire them in and re-verify the previously-blocked paths for real (this would also be the moment to flip `app.analysis.REQUEST_SHAPE_VERIFIED` to `True`, and only then). Otherwise the next dependent block is the Genblaze generation leg (script → voice → face/avatar) per `docs/roadmap/CURRENT_ROADMAP.md`, informed by whatever `CF-VERIFY-001`'s still-unexecuted live test eventually finds. No deployment or live acceptance has been authorized yet.
