@@ -82,6 +82,14 @@ class CreatorProfile(BaseModel):
     source_asset_hash: str
     created_at: datetime = Field(default_factory=utcnow)
 
+    # Explicit, code-level (not just comment/docstring) experimental marker.
+    # False means the exact request shape used to produce this profile has
+    # not been confirmed against a live provider response -- see
+    # app/analysis.py's module docstring. Must be set true only by a future
+    # change made *after* a live call actually confirms the request/response
+    # shape; never set true speculatively.
+    request_shape_verified: bool = False
+
 
 class AnalysisBlockedRecord(BaseModel):
     """Persisted in place of a CreatorProfile when the real call could not run."""

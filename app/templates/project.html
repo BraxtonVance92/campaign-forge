@@ -68,6 +68,10 @@
   {% else %}
   <fieldset>
     <legend>Creator profile <span class="badge badge-ok">analyzed</span></legend>
+    {% if not result.request_shape_verified %}
+    <p class="badge badge-blocked">EXPERIMENTAL</p>
+    <p><small>The exact request shape used to produce this result has not been confirmed against a live GMI response (see app/analysis.py). Treat this result as unverified until an authorized live test proves the request/response shape.</small></p>
+    {% endif %}
     <dl>
       <dt>Audience</dt><dd>{{ result.audience }}</dd>
       <dt>Content pillars</dt><dd>{{ result.content_pillars | join(', ') }}</dd>

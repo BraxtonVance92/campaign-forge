@@ -18,6 +18,28 @@ class StorageNotConfiguredError(RuntimeError):
     """Raised by B2Storage when required B2 environment variables are absent."""
 
 
+class PresignedUrlUnsupportedError(RuntimeError):
+    """Raised when a presigned URL is requested from a backend that has no
+    such concept (local disk, in-memory) -- never silently returns a URL
+    that won't actually work."""
+
+
+# Bounds for presigned URL expiration. Uploaded originals are private by
+# default (docs/canon/FOUNDER_CANON.md); a short default and a hard upper
+# bound keep any one generated URL's exposure window small and deliberate.
+MIN_PRESIGNED_URL_EXPIRES_SECONDS = 1
+MAX_PRESIGNED_URL_EXPIRES_SECONDS = 604800  # 7 days: SigV4's own hard limit
+DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS = 900  # 15 minutes -- ample for GMI to fetch promptly
+
+
+def _validate_expires_in(expires_in: int) -> None:
+    if not (MIN_PRESIGNED_URL_EXPIRES_SECONDS <= expires_in <= MAX_PRESIGNED_URL_EXPIRES_SECONDS):
+        raise ValueError(
+            f"expires_in must be between {MIN_PRESIGNED_URL_EXPIRES_SECONDS} and "
+            f"{MAX_PRESIGNED_URL_EXPIRES_SECONDS} seconds, got {expires_in}"
+        )
+
+
 class StorageBackend(Protocol):
     name: str
 
@@ -28,6 +50,10 @@ class StorageBackend(Protocol):
     def exists(self, key: str) -> bool: ...
 
     def list_keys(self, prefix: str) -> list[str]: ...
+
+    def get_presigned_url(
+        self, key: str, expires_in: int = DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS
+    ) -> str: ...
 
 
 class B2Storage:
@@ -83,6 +109,24 @@ class B2Storage:
             keys.extend(obj["Key"] for obj in page.get("Contents", []))
         return keys
 
+    def get_presigned_url(
+        self, key: str, expires_in: int = DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS
+    ) -> str:
+        """Time-limited, authenticated URL for a private object.
+
+        Uploaded originals are private by default (docs/canon/
+        FOUNDER_CANON.md); a plain bucket/key URL join would 403 for GMI's
+        servers against a private bucket, and was the real gap this method
+        replaces. expires_in is validated against a hard 1s-7day bound
+        before ever reaching boto3.
+        """
+        _validate_expires_in(expires_in)
+        return self._client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": key},
+            ExpiresIn=expires_in,
+        )
+
 
 class LocalDiskStorage:
     """Honest, explicitly-labeled fallback for local development only.
@@ -129,6 +173,16 @@ class LocalDiskStorage:
             if p.is_file()
         ]
 
+    def get_presigned_url(
+        self, key: str, expires_in: int = DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS
+    ) -> str:
+        raise PresignedUrlUnsupportedError(
+            "local-disk-fallback storage has no HTTP presence, so no presigned "
+            "URL can be generated -- there is nothing for a remote service "
+            "like GMI to fetch. This is the same reason real analysis is "
+            "blocked while this fallback is active (see app/analysis.py)."
+        )
+
 
 class InMemoryStorage:
     """Fake backend for tests only -- never used by the running application."""
@@ -151,6 +205,15 @@ class InMemoryStorage:
 
     def list_keys(self, prefix: str) -> list[str]:
         return [k for k in self._objects if k.startswith(prefix)]
+
+    def get_presigned_url(
+        self, key: str, expires_in: int = DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS
+    ) -> str:
+        raise PresignedUrlUnsupportedError(
+            "InMemoryStorage is a test-only fake with no HTTP presence; it "
+            "cannot generate a presigned URL. Tests exercising presigned-URL "
+            "behavior should use B2Storage with a fake boto3 client instead."
+        )
 
 
 def build_storage_backend(settings: Settings) -> StorageBackend:

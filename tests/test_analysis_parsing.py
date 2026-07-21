@@ -38,6 +38,23 @@ def test_parse_creator_profile_accepts_valid_contract_fixture():
     assert profile.source_asset_hash == "deadbeef"
 
 
+def test_parse_creator_profile_marks_result_shape_unverified():
+    """The experimental marker (app.analysis.REQUEST_SHAPE_VERIFIED) must be
+    threaded onto every produced CreatorProfile, not just left as a code
+    comment, so the display layer can warn on it. See also
+    app/templates/project.html's EXPERIMENTAL badge."""
+    import app.analysis as analysis_module
+
+    profile = parse_creator_profile(
+        VALID_FIXTURE, project_id="p1", source_id="s1", source_asset_hash="x"
+    )
+    assert profile.request_shape_verified == analysis_module.REQUEST_SHAPE_VERIFIED
+    assert profile.request_shape_verified is False, (
+        "must stay False until an authorized live test actually confirms the "
+        "video_url request shape -- never set speculatively"
+    )
+
+
 @pytest.mark.parametrize(
     "missing_key", ["audience", "content_pillars", "confidence", "limitations"]
 )

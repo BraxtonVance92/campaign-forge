@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 
 from app.models import AnalysisBlockedRecord, ConsentRecord, CreatorProfile, Project, SourceAsset
-from app.storage import StorageBackend
+from app.storage import DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS, StorageBackend
 
 
 def _project_key(project_id: str) -> str:
@@ -77,22 +77,30 @@ def get_source(storage: StorageBackend, project_id: str, source_id: str) -> Sour
     return SourceAsset.model_validate_json(storage.get_object(key))
 
 
-def get_source_original_url(source: SourceAsset, storage: StorageBackend) -> str:
-    """Best-effort accessible reference to the original file.
+def get_source_original_url(
+    source: SourceAsset,
+    storage: StorageBackend,
+    expires_in: int = DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS,
+) -> str:
+    """Accessible reference to the original file for a remote fetcher (GMI).
 
-    Only ever a real https:// URL for the real B2 backend; local-disk
-    fallback has no public URL, which app/analysis.py's AnalysisBlockedError
-    check depends on to correctly refuse a real analysis call in that mode.
+    Uploaded originals are private by default (docs/canon/FOUNDER_CANON.md).
+    An earlier version of this function joined the bucket endpoint and key
+    into a plain URL, which would 403 for a private B2 object -- GMI's
+    servers cannot authenticate. This generates a real, time-limited
+    presigned URL through the storage backend instead, so a private object
+    is actually fetchable for the short window this analysis attempt needs.
+
+    Only ever a real https:// presigned URL for the real B2 backend;
+    local-disk fallback has no HTTP presence at all, which
+    app/analysis.py's AnalysisBlockedError check depends on to correctly
+    refuse a real analysis call in that mode.
     """
     if storage.name == "b2":
-        # Presigned/public URL construction is deployment-specific; the bucket
-        # endpoint plus key is the minimum honest reference for this slice.
-        from app.config import load_settings
-
-        settings = load_settings()
-        return f"{settings.b2_endpoint}/{settings.b2_bucket_name}/" + _source_original_key(
+        key = source_original_key(
             source.project_id, source.id, source.original_filename
         )
+        return storage.get_presigned_url(key, expires_in=expires_in)
     return f"local-disk-fallback://{source.storage_key}"
 
 

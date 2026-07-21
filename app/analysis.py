@@ -52,6 +52,14 @@ GMI_CHAT_ENDPOINT = "https://api.gmi-serving.com/v1/chat/completions"
 ANALYSIS_MODEL = "nvidia/nemotron-3-nano-omni"
 PROMPT_SCHEMA_VERSION = "cf-run-001-v2"
 
+# EXPERIMENTAL: this client is not claimed to be production-ready. Flip to
+# True only after an authorized live test actually confirms the video_url
+# request shape against a real GMI response -- never speculatively. This
+# flag is threaded into every CreatorProfile this client produces (see
+# parse_creator_profile()) so the experimental status is visible all the
+# way to the display page, not just in this module's comments.
+REQUEST_SHAPE_VERIFIED = False
+
 
 class AnalysisBlockedError(RuntimeError):
     """Raised for any condition that prevents a real analysis result --
@@ -199,4 +207,5 @@ def parse_creator_profile(
         analysis_model=ANALYSIS_MODEL,
         prompt_schema_version=PROMPT_SCHEMA_VERSION,
         source_asset_hash=source_asset_hash,
+        request_shape_verified=REQUEST_SHAPE_VERIFIED,
     )

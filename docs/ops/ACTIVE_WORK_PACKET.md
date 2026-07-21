@@ -39,6 +39,11 @@ Required flow:
 - `requirements.txt` / `pyproject.toml` and a `.env.example` (names only, no values)
 - `README.md` — update to reflect that runtime code now exists and how to run it
 - `docs/ops/ACTIVE_WORK_PACKET.md`, `docs/ops/CURRENT_STATE.md`, `docs/ops/DECISION_LOG.md` — status/evidence updates only, no product redefinition
+- `.github/workflows/cf-run-001-tests.yml` — see amendment below. The one narrow exception to this packet's own general CI prohibition.
+
+### Amendment: authorized CI file for automated PR test status checks
+
+This packet's original forbidden-paths list excluded all `.github/workflows/*` changes. That is amended for exactly one file: `.github/workflows/cf-run-001-tests.yml`, a `pull_request`/`push`-to-`main`-triggered workflow that runs `pytest tests/` and nothing else. No secrets are required (every test in this suite is fully mocked/local — no real GMI or B2 credential is ever read), no deployment, no external service call. This exists so PR review has a real, terminal CI status check to point to, per direct instruction, rather than relying solely on locally-reported test output. No other CI, deployment, or infrastructure-as-code file is authorized by this amendment.
 
 ### Forbidden paths and scope
 
@@ -46,7 +51,8 @@ Required flow:
 - Voice cloning, avatar/face generation, any HeyGen integration
 - Publishing/distribution features, billing/payment code, authentication expansion beyond what this flow strictly needs (no new user-account system)
 - Any unrelated UI beyond what this one flow needs
-- Render service creation, production deployment, `.github/workflows/*` changes (CI remains out of scope for this packet)
+- Render service creation, production deployment
+- Any CI/workflow file other than the single `.github/workflows/cf-run-001-tests.yml` authorized above
 - Real B2 or GMI credentials in any file, log, test, commit, or receipt — environment-variable names only
 
 ### Technical stack
@@ -85,7 +91,7 @@ Close the draft PR or revert its commits; `main` is unaffected until a future, s
 
 ### Authority boundary
 
-Claude may implement, test, commit, and push this feature branch and open/update its draft PR without further approval, per standing authority in `docs/ops/AUTHORITY_MATRIX.md`. Claude may not merge this PR, deploy, create a Render service, add or modify CI workflows, or use real GMI/B2 credentials that are not actually present in the environment.
+Claude may implement, test, commit, and push this feature branch and open/update its draft PR without further approval, per standing authority in `docs/ops/AUTHORITY_MATRIX.md`. Claude may add exactly the one CI file authorized in the amendment above. Claude may not merge this PR, deploy, create a Render service, add or modify any other CI workflow, or use real GMI/B2 credentials that are not actually present in the environment.
 
 ### Next dependent block
 
