@@ -2,97 +2,94 @@
 
 ## CF-RUN-001 — Smallest real product flow: upload → analysis → persist → display
 
+Status: `MERGED` — approved as-is at exact SHA `1cb15c937422517657c3e85463df4e440a11bfb0` (76 tests passing locally and in CI) and merged into `main` at merge commit `c9ae8bb3926c2589043d8467244dc7f51586543f` with explicit founder confirmation (D-020). Its UI was subsequently refined in PR #5 (desktop layout width fix, restructured result display, accessibility fixes, 84 tests passing) merged at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (D-021). Not deployed; not live-verified. See `CF-RUN-002` below, now the active packet.
+
+---
+
+## CF-RUN-002 — Wire real credentials, run the first live non-fabricated analysis
+
 Classification: `RUNTIME`
 
-Consumer: the CampaignForge product itself — this is the first runtime application code in this repository. Founder/controller dispatched this packet directly, in the same message that authorized merging its predecessor (`CF-VERIFY-001`, merged at main SHA `f195833bd67236346f9865485be5b6a8424e3573`), explicitly instructing continuous work without waiting for a separately-formatted packet.
+Consumer: the CampaignForge product itself. Dispatched directly per standing founder instruction to keep working continuously through bounded packets without waiting for a separately-formatted dispatch each time (D-022).
 
-Status: `IN_PROGRESS`.
+Status: `BLOCKED_ON_CREDENTIALS`. No further code change is required to unblock this packet — the full upload → analyze → persist → display flow (including honest blocking on every real GMI/network/contract failure mode) is already implemented, tested, and merged. This packet's only remaining action is external: the founder supplying real `GMI_API_KEY` and B2 credentials (exact instructions in `docs/ops/CURRENT_STATE.md`'s "Founder setup instruction").
 
 ### Founder intent and business outcome
 
-Prove the golden path's first real slice, narrowly: one authorized creator uploads one video, a real analysis runs (or is cleanly blocked and marked as such if the credential isn't available), the structured result persists, and it can be retrieved/displayed. This is not the full contest MVP — it is the smallest vertical slice that is real rather than simulated.
+Move from "the real analysis path is implemented and tested against mocked/contract fixtures" to "one real, authorized creator video has actually been analyzed by GMI, live, with the true response persisted and displayed" — the first genuinely non-simulated result in this product's history.
 
 ### Base
 
 - Repository: `BraxtonVance92/campaign-forge`
 - Base branch: `main`
-- Exact base SHA: `f195833bd67236346f9865485be5b6a8424e3573` (merge commit for PR #2)
-- Branch: `feat/cf-run-001`
+- Exact base SHA: `e5b26eafd2917cd8bbfffa607f554195106c6a47` (merge commit for PR #5)
+- Branch: (to be created when credentials are supplied and this packet becomes actionable — no branch exists yet for this packet, since there is no code change to make ahead of that)
 
 ### Scope
 
-Exactly one video, one analysis result, one project. No multi-example learning, no multi-tenant concerns yet.
+Exactly the same one video / one analysis result / one project slice as `CF-RUN-001` — this packet does not add new product surface. Its only job is to take that already-implemented flow from "tested against mocks/fixtures" to "actually run once against real GMI, live":
 
-Required flow:
+1. When real `GMI_API_KEY` and B2 credentials are supplied (by the founder, per the setup instruction in `docs/ops/CURRENT_STATE.md`), confirm `/health` reports both configured.
+2. Upload one real authorized creator video through the running app.
+3. Trigger analysis and confirm it produces a real, rendered creator profile — not a blocked card.
+4. Capture sanitized evidence of that real call (provider, model, confidence value, whether contract validation passed) — never the raw provider response body, never a secret.
+5. Only then, flip `app.analysis.REQUEST_SHAPE_VERIFIED` from `False` to `True` in `app/analysis.py`, and record the change in `docs/ops/DECISION_LOG.md`.
+6. If B2 is configured but GMI is not (or vice versa), stop only the half that's missing and report exactly which credential is still absent — do not treat a partial configuration as a full blocker requiring no further explanation.
 
-1. Upload one authorized creator video with a required consent attestation.
-2. Validate the upload (file type, size, consent present).
-3. Persist the original and its metadata.
-4. Run real analysis via GMI/Genblaze if `GMI_API_KEY` is available; if not, implement and test everything up to that call and mark it as an explicit, honest blocker — never a fake or placeholder result.
-5. Persist the structured analysis result (or the "blocked" state) if analysis ran.
-6. Retrieve and display the source + result (or the honest not-yet-analyzed/blocked state) through a minimal interface.
+No code change is anticipated to be needed to reach this state — inspection on 2026-07-21 confirmed the upload/analyze/persist/display path, the credential-presence gate, and the honest-blocking behavior for every real failure mode are already implemented and tested (see `CF-RUN-001` above). If live testing reveals a real defect (e.g., the `video_url` request shape actually rejected by GMI — flagged as unverified in `app/analysis.py`'s module docstring), fixing that specific, evidenced defect is in scope; speculative pre-emptive changes are not.
 
 ### Allowed paths
 
-- New application source under `app/` (or equivalent minimal FastAPI project layout)
-- New `tests/` directory
-- `requirements.txt` / `pyproject.toml` and a `.env.example` (names only, no values)
-- `README.md` — update to reflect that runtime code now exists and how to run it
+- `app/analysis.py` — only to fix a real, live-evidenced defect in the request/response handling, or to flip `REQUEST_SHAPE_VERIFIED` after a real success
 - `docs/ops/ACTIVE_WORK_PACKET.md`, `docs/ops/CURRENT_STATE.md`, `docs/ops/DECISION_LOG.md` — status/evidence updates only, no product redefinition
-- `.github/workflows/cf-run-001-tests.yml` — see amendment below. The one narrow exception to this packet's own general CI prohibition.
-
-### Amendment: authorized CI file for automated PR test status checks
-
-This packet's original forbidden-paths list excluded all `.github/workflows/*` changes. That is amended for exactly one file: `.github/workflows/cf-run-001-tests.yml`, a `pull_request`/`push`-to-`main`-triggered workflow that runs `pytest tests/` and nothing else. No secrets are required (every test in this suite is fully mocked/local — no real GMI or B2 credential is ever read), no deployment, no external service call. This exists so PR review has a real, terminal CI status check to point to, per direct instruction, rather than relying solely on locally-reported test output. No other CI, deployment, or infrastructure-as-code file is authorized by this amendment.
+- `tests/` — new focused tests proving the real call's evidence-capture and any live-evidenced fix
+- No new CI/workflow file is anticipated; this is a manual, credential-gated, founder-triggered action, not an automated pipeline, consistent with `CF-VERIFY-001`'s established pattern (D-014) of never letting live provider calls run unattended or on every push/PR
 
 ### Forbidden paths and scope
 
 - `CLAUDE.md`, `docs/canon/*`, `docs/ops/AUTHORITY_MATRIX.md`
 - Voice cloning, avatar/face generation, any HeyGen integration
-- Publishing/distribution features, billing/payment code, authentication expansion beyond what this flow strictly needs (no new user-account system)
-- Any unrelated UI beyond what this one flow needs
+- Publishing/distribution features, billing/payment code, authentication expansion, any unrelated UI
 - Render service creation, production deployment
-- Any CI/workflow file other than the single `.github/workflows/cf-run-001-tests.yml` authorized above
-- Real B2 or GMI credentials in any file, log, test, commit, or receipt — environment-variable names only
-
-### Technical stack
-
-No existing application stack exists in this repository to reuse — `CF-BOOT-001`/`CF-VERIFY-001` were docs/CI-only. The closest documented direction is `docs/canon/PRODUCT_CANON.md`'s "Recommended technical shape" (D-006 in `docs/ops/DECISION_LOG.md`, still `PROPOSED`, not founder-approved as binding): Python 3.11+ FastAPI. This packet follows that recommendation for the API/backend since it is the only documented direction and Genblaze (the required orchestration SDK) is a Python package; the UI is kept to the minimum needed to satisfy "display it" — a server-rendered page, not a separate frontend framework, to avoid adding scope not required by this narrow flow.
+- Any new CI/workflow file — a real live GMI call must never run unattended in an automated pipeline; it stays a manual, founder-supervised action
+- Real B2 or GMI credentials in any file, log, test, commit, or receipt — environment-variable names only, values only ever in the local, gitignored `.env`
+- Fabricating, inventing, or reusing a non-authorized "test" creator video to exercise this flow — the consent chain in `docs/canon/FOUNDER_CANON.md`/D-011 requires a real, person-specific authorization, which only the founder can supply
 
 ### External dependencies and blockers, stated up front
 
-- `GMI_API_KEY`: not present in this environment. The analysis call is implemented and unit-tested against a documented response-contract fixture, but the real external call is gated behind this credential's presence and marked blocked if absent.
-- Real Backblaze B2 credentials (`B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`, `B2_ENDPOINT`): also not present in this environment — this is an additional blocker beyond the one named in the dispatch instruction, surfaced here rather than silently assumed. The storage layer is built against a real B2 (S3-compatible) client for production use, with a fake in-memory implementation of the same interface used for tests, so persistence logic is proven without needing live credentials.
+- `GMI_API_KEY`: not present in this environment (re-confirmed 2026-07-21). Required for any real call.
+- Real Backblaze B2 credentials (`B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`, `B2_ENDPOINT`): also not present (re-confirmed 2026-07-21). Required alongside GMI — see the "both together" note in `docs/ops/CURRENT_STATE.md`.
+- A real, authorized creator video to upload: this packet cannot supply one on its own; it requires the founder (or another verified-authorized creator) to provide it, consistent with the consent requirement above.
 
 ### Required behavior
 
-- Every stage from `docs/canon/PRODUCT_CANON.md`'s "System stage contract" that this packet touches must be evidenced through its real boundary (real validation, real parsing logic against the documented contract, real persistence logic) or explicitly marked blocked — never asserted as working without evidence.
-- Consent attestation is required at upload time, consistent with `docs/canon/FOUNDER_CANON.md`'s trust/consent rules — not optional, not deferred.
+- No real call may ever be simulated, faked, or inferred from a mocked fixture and then described as live. If credentials are absent, this packet stays `BLOCKED_ON_CREDENTIALS` and says so plainly — it does not manufacture partial progress.
+- Consent attestation (already enforced at upload time by `CF-RUN-001`) is not weakened or bypassed to make testing more convenient.
 
 ### Acceptance checks
 
-1. Focused tests exist and pass for: upload validation, analysis-response parsing, persistence, and result retrieval/display.
-2. No fake analysis result is ever presented as real; the blocked state is explicit and visible wherever the real result would otherwise appear.
-3. No secret value appears in any file, test, log, or commit.
-4. `git diff --check` is clean.
-5. README accurately reflects what now exists and how to run/test it.
+1. `/health` shows `gmi_configured: true` and `b2_configured: true` before any live call is attempted.
+2. One real analysis produces a rendered, non-blocked creator profile, observed directly (screenshot or equivalent), not merely inferred from logs.
+3. `app.analysis.REQUEST_SHAPE_VERIFIED` is flipped to `True` only after step 2, in the same change that records the evidence.
+4. No secret value or raw provider response body appears in any file, test, log, commit, or receipt.
+5. Full test suite still passes after any change.
 
 ### Workflow and receipt
 
-1. Confirm base SHA unchanged on `main`.
-2. Implement in focused commits: storage abstraction → upload/consent endpoint → analysis client/parsing → persistence → display/restore.
-3. Run the full test suite; record real pass/fail output.
-4. Commit and push checkpoints as work progresses; open a draft PR (not merged).
-5. Return the standard receipt from `CLAUDE.md`, clearly separating what is real/tested from what is blocked.
+1. Confirm the founder has supplied credentials per the setup instruction (or stop here and report the blocker, taking no further action on this specific packet).
+2. Verify `/health` reports both configured.
+3. Perform the one real analysis through the running app with a founder-supplied authorized video.
+4. Capture sanitized evidence; flip `REQUEST_SHAPE_VERIFIED`; update the three ops docs and `DECISION_LOG.md` in the same change.
+5. Run the full test suite; commit, push, open/update a draft PR; return the standard receipt from `CLAUDE.md`.
 
 ### Rollback
 
-Close the draft PR or revert its commits; `main` is unaffected until a future, separately-reviewed merge.
+Revert the `REQUEST_SHAPE_VERIFIED` flip and any accompanying doc changes; no deployment or irreversible external action occurs as part of this packet.
 
 ### Authority boundary
 
-Claude may implement, test, commit, and push this feature branch and open/update its draft PR without further approval, per standing authority in `docs/ops/AUTHORITY_MATRIX.md`. Claude may add exactly the one CI file authorized in the amendment above. Claude may not merge this PR, deploy, create a Render service, add or modify any other CI workflow, or use real GMI/B2 credentials that are not actually present in the environment.
+Claude may check `/health`, run the one real analysis once credentials and an authorized video are supplied, capture sanitized evidence, flip `REQUEST_SHAPE_VERIFIED`, update docs, commit, push, and open/update a draft PR without further per-step approval, per standing authority in `docs/ops/AUTHORITY_MATRIX.md` and the founder's standing instruction (D-022). Claude may not merge this PR, deploy, create a Render service, add any new CI/workflow file, spend money, or fabricate/claim a live result without direct evidence.
 
 ### Next dependent block
 
-Once this slice is real and reviewed: extend to the Genblaze generation leg (script → voice → face/avatar video) per `docs/roadmap/CURRENT_ROADMAP.md` Phases 2-4, informed by whatever `CF-VERIFY-001` live testing eventually finds.
+Once this slice is genuinely live-verified: extend to the Genblaze generation leg (script → voice → face/avatar video) per `docs/roadmap/CURRENT_ROADMAP.md` Phases 2-4, informed by what this real GMI call reveals about actual response shape and quality.

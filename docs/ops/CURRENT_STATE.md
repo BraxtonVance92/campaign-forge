@@ -1,23 +1,23 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21 (CF-VERIFY-001 merged; CF-RUN-001 in progress).
+Last updated: 2026-07-21 (CF-RUN-001 merged; PR #5 UI refresh merged; CF-RUN-002 dispatched, blocked on credentials).
 
-## State: IN_PROGRESS — CF-RUN-001 (smallest real product flow)
+## State: BLOCKED ON CREDENTIALS — CF-RUN-002 (first live, non-fabricated analysis)
 
-`CF-BOOT-001` and `CF-VERIFY-001` are both `MERGED`. `main` is at `f195833bd67236346f9865485be5b6a8424e3573` (merge commit for PR #2). `CF-RUN-001` — the first runtime application code in this repository — was dispatched directly by the founder/controller and is in progress on branch `feat/cf-run-001` (not yet merged).
+`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, and the PR #5 UI refresh are all `MERGED`. `main` is at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (merge commit for PR #5). The full upload → analyze → persist → display flow is implemented and tested end-to-end; the only remaining gap is that no real `GMI_API_KEY` or Backblaze B2 credentials are present in this environment, so every real analysis attempt honestly reports itself as blocked rather than fabricating a result. See "Blocker" and "Founder setup instruction" below for exactly what to do to unblock this.
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `f195833bd67236346f9865485be5b6a8424e3573`.
-- PR #1: `MERGED`. PR #2: `MERGED`.
-- Active packet branch: `feat/cf-run-001`, created from the merged `main`.
-- The exact current candidate SHA for any in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
-- `main` now contains: `README.md`, root `CLAUDE.md`, the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, and `.github/workflows/cf-verify-001.yml` (prepared, not executed — no `GMI_API_KEY` secret has been added, no account funded, nothing triggered).
+- Main head SHA: `e5b26eafd2917cd8bbfffa607f554195106c6a47`.
+- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`.
+- CI on `main` post-merge: `SUCCESS` at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (push-triggered run of `.github/workflows/cf-run-001-tests.yml`).
+- The exact current candidate SHA for any future in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
+- `main` now contains the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, two workflows (`cf-verify-001.yml` — prepared, not executed; `cf-run-001-tests.yml` — real, passing), and the full `app/`/`tests/` runtime application described below, including the PR #5 UI refresh (desktop layout width fix, restructured result display, accessibility fixes).
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
 
-### CF-RUN-001: what is real and evidenced (as of this commit, on `feat/cf-run-001`, not yet merged)
+### CF-RUN-001: what is real and evidenced (merged into `main` at `c9ae8bb3926c2589043d8467244dc7f51586543f`, UI refined in PR #5 at `e5b26eafd2917cd8bbfffa607f554195106c6a47`)
 
 - A FastAPI application (`app/`) implementing: project creation, authorized-video upload with a required consent attestation, checksum computation, structured persistence, an analysis trigger, and a minimal HTML display/restore page plus a JSON retrieval endpoint.
 - Upload validation (content type, real file-signature check against magic bytes — not just the client-supplied MIME header —, size, non-empty file, required consent, one-source-per-project enforcement) is real and covered by automated tests.
@@ -50,7 +50,7 @@ These claims do not establish that the GitHub repository contains the implementa
 - Real playable rendered video output.
 - Genblaze orchestration (no Genblaze SDK call has been made yet; CF-RUN-001's analysis client calls GMI's chat API directly, not through Genblaze's `Pipeline`/`Step` — a documented gap to close in a later packet).
 - Exact automated spend reporting.
-- Reviewed merge of runtime code (`feat/cf-run-001` is not yet merged — R1/R2 approval of the exact head SHA is still outstanding), repo-linked deployment, live acceptance, or any Render service. (CI itself is real and passing as of this SHA — see "CI" above; only the merge/deployment/live-acceptance steps downstream of it remain unverified.)
+- Repo-linked deployment, live acceptance (a customer/judge actually using the deployed app), or any Render service. Runtime code (CF-RUN-001 and the PR #5 UI refresh) is merged and CI-passing, but merged-and-tested is not the same as deployed-and-live-verified — no deployment of any kind has occurred yet.
 
 ## External facts verified 2026-07-21
 
@@ -66,8 +66,19 @@ Unknown/zero. No paid provider call has been made in this repository's history. 
 
 ## Blocker
 
-`CF-RUN-001`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented and tested. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret.
+`CF-RUN-002`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented, tested, and now merged to `main`. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret. Re-confirmed present-but-empty in this environment on 2026-07-21 (checked `.env` and the shell environment directly — no value found for any of the five variable names; only `.env.example`'s blank names exist).
+
+### Founder setup instruction (exact, current as of 2026-07-21)
+
+No Render or other hosted deployment exists yet, so the only place these currently need to go is this repository's local `.env` file (already `.gitignore`d — never commit it):
+
+1. In the repo root, copy `.env.example` to `.env` if you have not already (`cp .env.example .env`).
+2. Set `GMI_API_KEY=` to your real GMI Cloud API key.
+3. Set all four B2 variables together — `B2_KEY_ID=`, `B2_APPLICATION_KEY=`, `B2_BUCKET_NAME=`, `B2_ENDPOINT=` — from your Backblaze B2 bucket's Application Key page. **Both credential sets are required together for a genuinely live analysis**, not just `GMI_API_KEY` alone: without B2, uploads fall back to local-disk storage, which cannot produce a real `https://` URL GMI's servers can fetch, so analysis will still honestly report itself blocked even with a valid GMI key.
+4. Restart the server so it re-reads the environment: `uvicorn app.main:app --reload`.
+5. Confirm both are recognized: open `http://127.0.0.1:8000/health` — it must show `"gmi_configured": true` and `"b2_configured": true`. Neither value is a real live-call test by itself, only a presence check.
+6. Confirm a real analysis actually runs: create a project, upload one authorized creator video, click "Run creator analysis." A rendered creator profile (not the "Analysis blocked" card) confirms the real call succeeded. Only at that point should `app.analysis.REQUEST_SHAPE_VERIFIED` be flipped to `True` (D-022) — never speculatively.
 
 ## Next safe action
 
-Controller/founder reviews `feat/cf-run-001`'s draft PR. If real credentials become available, wire them in and re-verify the previously-blocked paths for real; otherwise the next dependent block (Genblaze generation leg) can proceed once this slice is reviewed.
+Controller/founder supplies the credentials per the instruction above (or explicitly declines/defers). Once supplied, wire them in and run the first real, live, non-fabricated analysis (`CF-RUN-002`, D-022), capturing sanitized evidence and flipping `REQUEST_SHAPE_VERIFIED`. Until then, the next dependent block (Genblaze generation leg) remains available to plan but not to build against real provider behavior.
