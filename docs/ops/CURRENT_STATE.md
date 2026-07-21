@@ -50,7 +50,7 @@ These claims do not establish that the GitHub repository contains the implementa
 - Real playable rendered video output.
 - Genblaze orchestration (no Genblaze SDK call has been made yet; CF-RUN-001's analysis client calls GMI's chat API directly, not through Genblaze's `Pipeline`/`Step` — a documented gap to close in a later packet).
 - Exact automated spend reporting.
-- CI, reviewed merge of runtime code (`feat/cf-run-001` is not yet merged), repo-linked deployment, live acceptance, or any Render service.
+- Reviewed merge of runtime code (`feat/cf-run-001` is not yet merged — R1/R2 approval of the exact head SHA is still outstanding), repo-linked deployment, live acceptance, or any Render service. (CI itself is real and passing as of this SHA — see "CI" above; only the merge/deployment/live-acceptance steps downstream of it remain unverified.)
 
 ## External facts verified 2026-07-21
 
