@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampaignForge — {{ project.name }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 1.5rem; padding: 1rem; }
+    label { display: block; margin-top: 0.75rem; font-weight: 600; }
+    input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; box-sizing: border-box; }
+    button { margin-top: 1rem; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.85rem; }
+    .badge-blocked { background: #fde2e2; color: #8a1f1f; }
+    .badge-ok { background: #e2f7e2; color: #1f6b1f; }
+    dl { display: grid; grid-template-columns: 12rem 1fr; gap: 0.25rem 1rem; }
+    dt { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <p><a href="/">&larr; new project</a></p>
+  <h1>{{ project.name }}</h1>
+  <p><small>Storage backend for this environment: <code>{{ storage_backend }}</code>{% if storage_backend != "b2" %} — not real Backblaze B2, a disclosed local fallback for this environment{% endif %}.</small></p>
+
+  {% if source is none %}
+  <fieldset>
+    <legend>Upload one authorized creator video</legend>
+    <form action="/projects/{{ project.id }}/sources" method="post" enctype="multipart/form-data">
+      <label for="consent_statement">Consent attestation (required)</label>
+      <textarea id="consent_statement" name="consent_statement" rows="2" required
+        placeholder="I confirm I am authorized to use this footage for analysis and generation."></textarea>
+
+      <label for="permitted_uses">Permitted uses (comma-separated, required)</label>
+      <input id="permitted_uses" name="permitted_uses" type="text" required
+        placeholder="analysis, public demo">
+
+      <label for="file">Video file (mp4, mov, or webm)</label>
+      <input id="file" name="file" type="file" accept="video/mp4,video/quicktime,video/webm" required>
+
+      <button type="submit">Upload</button>
+    </form>
+  </fieldset>
+  {% else %}
+  <fieldset>
+    <legend>Authorized source</legend>
+    <dl>
+      <dt>Filename</dt><dd>{{ source.original_filename }}</dd>
+      <dt>Size</dt><dd>{{ source.size_bytes }} bytes</dd>
+      <dt>Checksum (SHA-256)</dt><dd><code>{{ source.checksum_sha256 }}</code></dd>
+      <dt>Uploaded</dt><dd>{{ source.uploaded_at }}</dd>
+    </dl>
+  </fieldset>
+
+  {% if result is none %}
+  <fieldset>
+    <legend>Analysis</legend>
+    <p>Not yet analyzed.</p>
+    <form action="/projects/{{ project.id }}/sources/{{ source.id }}/analyze" method="post">
+      <button type="submit">Run analysis</button>
+    </form>
+  </fieldset>
+  {% elif result.status is defined and result.status == "blocked" %}
+  <fieldset>
+    <legend>Analysis <span class="badge badge-blocked">blocked</span></legend>
+    <p>{{ result.reason }}</p>
+    <p><small>This is an honest blocked state, not a placeholder result. No fake analysis is shown.</small></p>
+  </fieldset>
+  {% else %}
+  <fieldset>
+    <legend>Creator profile <span class="badge badge-ok">analyzed</span></legend>
+    {% if not result.request_shape_verified %}
+    <p class="badge badge-blocked">EXPERIMENTAL</p>
+    <p><small>The exact request shape used to produce this result has not been confirmed against a live GMI response (see app/analysis.py). Treat this result as unverified until an authorized live test proves the request/response shape.</small></p>
+    {% endif %}
+    <dl>
+      <dt>Audience</dt><dd>{{ result.audience }}</dd>
+      <dt>Content pillars</dt><dd>{{ result.content_pillars | join(', ') }}</dd>
+      <dt>Hook patterns</dt><dd>{{ result.hook_patterns | join(', ') }}</dd>
+      <dt>Confidence</dt><dd>{{ result.confidence }}</dd>
+      <dt>Limitations</dt><dd>{{ result.limitations | join('; ') }}</dd>
+      <dt>Provider / model</dt><dd>{{ result.analysis_provider }} / {{ result.analysis_model }}</dd>
+    </dl>
+  </fieldset>
+  {% endif %}
+  {% endif %}
+</body>
+</html>

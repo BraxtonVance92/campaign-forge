@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampaignForge</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    input { width: 100%; padding: 0.5rem; margin-top: 0.25rem; box-sizing: border-box; }
+    button { margin-top: 1rem; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>CampaignForge</h1>
+  <p>Smallest real product flow (CF-RUN-001): upload one authorized creator video, run real analysis, persist and display the result.</p>
+  <form action="/projects" method="post">
+    <label for="name">Project name</label>
+    <input id="name" name="name" type="text" required placeholder="e.g. Colton test project">
+    <button type="submit">Create project</button>
+  </form>
+</body>
+</html>

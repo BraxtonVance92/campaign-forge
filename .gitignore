@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CampaignForge local-disk storage fallback (dev only, never real B2 data)
+.local_storage/
