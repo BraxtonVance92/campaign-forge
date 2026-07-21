@@ -46,24 +46,27 @@
       {% if source is none %}
       <section class="content-card upload-card">
         <div class="section-heading"><span class="section-number">01</span><div><h2>Add a source video</h2><p>Choose one strong example that represents the creator’s natural style.</p></div></div>
-        <form action="/projects/{{ project.id }}/sources" method="post" enctype="multipart/form-data">
+        <form action="/projects/{{ project.id }}/sources" method="post" enctype="multipart/form-data" data-loading-text="Uploading…">
           <label class="drop-zone" for="file">
             <span class="upload-icon" aria-hidden="true">↑</span>
             <strong>Drop a video here or <u>browse files</u></strong>
             <small>MP4, MOV, or WebM · Maximum 100 MB</small>
-            <input id="file" name="file" type="file" accept="video/mp4,video/quicktime,video/webm" required>
+            <input id="file" name="file" type="file" accept="video/mp4,video/quicktime,video/webm" required aria-describedby="file-help">
           </label>
+          <small id="file-help" class="file-hint">A file that doesn't match its declared type (checked by content, not just its name) will be rejected after upload.</small>
 
           <div class="form-grid">
             <div class="field-group full">
               <label for="consent_statement">Permission confirmation</label>
-              <textarea id="consent_statement" name="consent_statement" rows="3" required placeholder="I confirm I am authorized to use this footage for analysis and content creation."></textarea>
-              <small>Only upload content you own or have clear permission to use.</small>
+              <textarea id="consent_statement" name="consent_statement" rows="3" required placeholder="I confirm I am authorized to use this footage for analysis and content creation." aria-describedby="consent-help consent-error"></textarea>
+              <small id="consent-help">Only upload content you own or have clear permission to use.</small>
+              <span id="consent-error" class="field-error" role="alert">This confirmation is required before upload.</span>
             </div>
             <div class="field-group full">
               <label for="permitted_uses">Allowed uses</label>
-              <input id="permitted_uses" name="permitted_uses" type="text" required value="analysis" placeholder="analysis, content planning">
-              <small>Separate multiple uses with commas.</small>
+              <input id="permitted_uses" name="permitted_uses" type="text" required value="analysis" placeholder="analysis, content planning" aria-describedby="uses-help uses-error">
+              <small id="uses-help">Separate multiple uses with commas.</small>
+              <span id="uses-error" class="field-error" role="alert">At least one permitted use is required.</span>
             </div>
           </div>
           <div class="action-row"><span class="secure-note">◇ Private by default</span><button class="button button-primary button-fit" type="submit">Upload video <span aria-hidden="true">→</span></button></div>
@@ -74,7 +77,7 @@
         <div class="section-heading"><span class="section-number complete">✓</span><div><h2>Source video uploaded</h2><p>Your authorized creator example is ready for analysis.</p></div></div>
         <div class="file-row">
           <div class="file-icon">▶</div>
-          <div class="file-main"><strong>{{ source.original_filename }}</strong><small>{{ source.size_bytes }} bytes · Uploaded {{ source.uploaded_at }}</small></div>
+          <div class="file-main"><strong title="{{ source.original_filename }}">{{ source.original_filename }}</strong><small>{{ source.size_bytes }} bytes · Uploaded {{ source.uploaded_at }}</small></div>
           <span class="badge badge-success">Ready</span>
         </div>
         <details class="technical-details"><summary>Technical details</summary><dl><dt>SHA-256 checksum</dt><dd><code>{{ source.checksum_sha256 }}</code></dd><dt>Storage</dt><dd>{{ storage_backend }}</dd></dl></details>
@@ -84,31 +87,77 @@
       <section class="content-card analysis-card">
         <div class="section-heading"><span class="section-number">02</span><div><h2>Analyze this creator</h2><p>Find the audience, content pillars, hook patterns, and repeatable creative strengths in this video.</p></div></div>
         <div class="analysis-preview"><div><span>◎</span><strong>Audience</strong></div><div><span>◈</span><strong>Content pillars</strong></div><div><span>↗</span><strong>Hook patterns</strong></div></div>
-        <form action="/projects/{{ project.id }}/sources/{{ source.id }}/analyze" method="post"><button class="button button-primary" type="submit">Run creator analysis <span aria-hidden="true">✦</span></button></form>
+        <form action="/projects/{{ project.id }}/sources/{{ source.id }}/analyze" method="post" data-loading-text="Analyzing…"><button class="button button-primary" type="submit">Run creator analysis <span aria-hidden="true">✦</span></button></form>
       </section>
       {% elif result.status is defined and result.status == "blocked" %}
       <section class="content-card">
-        <div class="section-heading"><span class="section-number warning">!</span><div><h2>Analysis needs attention</h2><p>The video is safe. The AI analysis could not start yet.</p></div></div>
-        <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Analysis blocked</strong><p>{{ result.reason }}</p></div></aside>
+        <div class="section-heading"><span class="section-number warning">!</span><div><h2>Analysis needs attention</h2><p>The video is safe. The AI analysis could not start or finish.</p></div></div>
+        <aside class="notice notice-warning" role="alert"><span class="notice-icon">!</span><div><strong>Analysis blocked</strong><p>{{ result.reason }}</p></div></aside>
         <p class="honesty-note">No result was invented. CampaignForge will only show a creator profile after a real analysis succeeds.</p>
+        <form action="/projects/{{ project.id }}/sources/{{ source.id }}/analyze" method="post" data-loading-text="Retrying…"><button class="button button-primary button-fit" type="submit">Try analysis again <span aria-hidden="true">↻</span></button></form>
       </section>
       {% else %}
       <section class="content-card results-card">
         <div class="section-heading"><span class="section-number complete">✓</span><div><h2>Your creator profile</h2><p>Patterns found in the authorized source video.</p></div><span class="badge badge-success">Analyzed</span></div>
         {% if not result.request_shape_verified %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Experimental analysis</strong><p>This result came from an integration that still needs live request-shape verification. Treat it as directional, not final.</p></div></aside>{% endif %}
-        <div class="result-grid">
-          <article><span class="result-icon">◎</span><h3>Audience</h3><p>{{ result.audience }}</p></article>
-          <article><span class="result-icon">◈</span><h3>Content pillars</h3><div class="tag-list">{% for item in result.content_pillars %}<span>{{ item }}</span>{% endfor %}</div></article>
-          <article><span class="result-icon">↗</span><h3>Hook patterns</h3><div class="tag-list">{% for item in result.hook_patterns %}<span>{{ item }}</span>{% endfor %}</div></article>
-          <article><span class="result-icon">◐</span><h3>Confidence</h3><p class="confidence-value">{{ result.confidence }}</p></article>
+
+        <div class="profile-summary" aria-label="Creator summary">
+          <div class="summary-stat"><span>Audience</span><strong>{{ result.audience }}</strong></div>
+          <div class="summary-stat confidence"><span>Confidence</span><strong>{{ result.confidence }}</strong></div>
         </div>
+
+        <div class="profile-sections">
+          <article class="profile-section">
+            <h3><span class="result-icon" aria-hidden="true">◈</span>Content patterns</h3>
+            {% set patterns = result.content_pillars + result.structure_patterns %}
+            {% if patterns %}<div class="tag-list">{% for item in patterns %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
+          </article>
+          <article class="profile-section">
+            <h3><span class="result-icon" aria-hidden="true">♪</span>Tone</h3>
+            {% if result.voice_traits %}<div class="tag-list">{% for item in result.voice_traits %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
+          </article>
+          <article class="profile-section">
+            <h3><span class="result-icon" aria-hidden="true">↗</span>Hooks</h3>
+            {% if result.hook_patterns %}<div class="tag-list">{% for item in result.hook_patterns %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
+          </article>
+          <article class="profile-section">
+            <h3><span class="result-icon" aria-hidden="true">◐</span>Visual style</h3>
+            {% if result.visual_patterns %}<div class="tag-list">{% for item in result.visual_patterns %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
+          </article>
+          <article class="profile-section full">
+            <h3><span class="result-icon" aria-hidden="true">✦</span>Recommendations</h3>
+            {% if result.cta_patterns %}<p class="rec-label">Calls to action that work</p><div class="tag-list">{% for item in result.cta_patterns %}<span>{{ item }}</span>{% endfor %}</div>{% endif %}
+            {% if result.avoid %}<p class="rec-label rec-avoid">Avoid</p><div class="tag-list">{% for item in result.avoid %}<span class="tag-avoid">{{ item }}</span>{% endfor %}</div>{% endif %}
+            {% if not result.cta_patterns and not result.avoid %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
+          </article>
+        </div>
+
         {% if result.limitations %}<div class="limitations"><strong>Keep in mind</strong><ul>{% for item in result.limitations %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
-        <div class="provider-line">Analyzed with {{ result.analysis_provider }} · {{ result.analysis_model }}</div>
+
+        <details class="technical-details">
+          <summary>Analysis details</summary>
+          <dl>
+            <dt>Provider</dt><dd>{{ result.analysis_provider }}</dd>
+            <dt>Model</dt><dd>{{ result.analysis_model }}</dd>
+            <dt>Schema version</dt><dd>{{ result.prompt_schema_version }}</dd>
+            <dt>Source hash</dt><dd><code>{{ result.source_asset_hash }}</code></dd>
+          </dl>
+        </details>
       </section>
       {% endif %}
       {% endif %}
     </main>
     <footer class="site-footer"><span>CampaignForge</span><span>Authorized content only.</span></footer>
   </div>
+  <script>
+    document.querySelectorAll('form[data-loading-text]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        var btn = form.querySelector('button[type="submit"]');
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>' + form.dataset.loadingText + '</span>';
+      });
+    });
+  </script>
 </body>
 </html>

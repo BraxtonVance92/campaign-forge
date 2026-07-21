@@ -40,12 +40,13 @@
         <div class="card-kicker">New analysis</div>
         <h2 id="start-title">Start a creator project</h2>
         <p>Name the creator or campaign you want to learn from. You’ll upload the authorized video next.</p>
-        <form action="/projects" method="post">
+        <form action="/projects" method="post" data-loading-text="Creating…">
           <label for="name">Project name</label>
           <div class="input-wrap">
             <span aria-hidden="true">✦</span>
-            <input id="name" name="name" type="text" required maxlength="120" autocomplete="off" placeholder="e.g. Colton creator analysis">
+            <input id="name" name="name" type="text" required maxlength="120" autocomplete="off" placeholder="e.g. Colton creator analysis" aria-describedby="name-error">
           </div>
+          <span id="name-error" class="field-error" role="alert">A project name is required.</span>
           <button class="button button-primary" type="submit"><span>Create project</span><span aria-hidden="true">→</span></button>
         </form>
         <div class="privacy-note"><span aria-hidden="true">◇</span> Your content stays private and is only used with your permission.</div>
@@ -54,5 +55,15 @@
 
     <footer class="site-footer"><span>CampaignForge</span><span>Built for creators, not algorithms.</span></footer>
   </div>
+  <script>
+    document.querySelectorAll('form[data-loading-text]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        var btn = form.querySelector('button[type="submit"]');
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>' + form.dataset.loadingText + '</span>';
+      });
+    });
+  </script>
 </body>
 </html>
