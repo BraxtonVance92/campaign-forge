@@ -12,7 +12,8 @@ The founder issued a binding correction rejecting the prior no-face/no-voice dec
 - Default branch: `main`.
 - Main head SHA: `269d2900b1131c793d7cdf2e87655891f5256149` (unchanged since the original bootstrap audit; re-verified before this correction).
 - Active correction branch: `docs/cf-boot-001`.
-- Candidate SHA: `09fd09594591b1f08e6f4a23fd2284813d1f9e35` (current head of `docs/cf-boot-001`, pushed to origin).
+- Predecessor candidate SHA: `09fd09594591b1f08e6f4a23fd2284813d1f9e35` (an earlier head of `docs/cf-boot-001`, since superseded by further commits on the branch; not the current head).
+- The exact current candidate SHA is not recorded in this file. A commit cannot contain its own resulting SHA, so any SHA written here as "current" becomes stale the instant that commit is made. The exact current candidate SHA is maintained in PR #1's metadata (`headRefOid`) and in checkpoint/review receipts, which are generated after the commit exists.
 - Pull request: #1 (draft, open), targeting `main`.
 - At the recorded main SHA, the repository contains a minimal `README.md` and root `CLAUDE.md` operating contract. No runtime application source exists on `main`.
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
