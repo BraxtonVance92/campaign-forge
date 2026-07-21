@@ -4,7 +4,7 @@ Last updated: 2026-07-21 (canon repair in progress following a founder product c
 
 ## State: IN_PROGRESS — canon repair, pending controller review
 
-The founder issued a binding correction rejecting the prior no-face/no-voice decision (D-005). Authorized face-and-voice video generation is now recorded as core product scope (`docs/ops/DECISION_LOG.md` D-010, D-011). This correction is reflected in `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, `docs/roadmap/CURRENT_ROADMAP.md`, `docs/ops/AUTHORITY_MATRIX.md`, and this file. The bootstrap gate remains open until the controller reviews the corrected sources of truth for coherence.
+The founder issued a binding correction rejecting the prior no-face/no-voice decision (D-005). Authorized face-and-voice video generation is now recorded as core product scope (`docs/ops/DECISION_LOG.md` D-010, D-011). This correction is reflected in `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, `docs/roadmap/CURRENT_ROADMAP.md`, `docs/ops/AUTHORITY_MATRIX.md`, and this file. The bootstrap gate remains blocked pending controller approval.
 
 ### Repository-verified (as of this inspection)
 
@@ -12,6 +12,7 @@ The founder issued a binding correction rejecting the prior no-face/no-voice dec
 - Default branch: `main`.
 - Main head SHA: `269d2900b1131c793d7cdf2e87655891f5256149` (unchanged since the original bootstrap audit; re-verified before this correction).
 - Active correction branch: `docs/cf-boot-001`.
+- Candidate SHA: `09fd09594591b1f08e6f4a23fd2284813d1f9e35` (current head of `docs/cf-boot-001`, pushed to origin).
 - Pull request: #1 (draft, open), targeting `main`.
 - At the recorded main SHA, the repository contains a minimal `README.md` and root `CLAUDE.md` operating contract. No runtime application source exists on `main`.
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
