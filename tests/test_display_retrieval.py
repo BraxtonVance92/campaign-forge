@@ -28,7 +28,10 @@ def test_view_project_shows_source_and_analyze_prompt_after_upload(client):
     resp = client.get(f"/projects/{project_id}")
     assert resp.status_code == 200
     assert "clip.mp4" in resp.text
-    assert "Not yet analyzed" in resp.text
+    # Copy wording changed with the UI refresh; the state itself (no
+    # analysis run yet, an explicit prompt to run one) must still be true.
+    assert "Not started" in resp.text
+    assert "Run creator analysis" in resp.text
 
 
 def test_analyze_without_gmi_key_persists_and_displays_honest_blocked_state(client):
@@ -67,8 +70,10 @@ def test_analyze_without_gmi_key_persists_and_displays_honest_blocked_state(clie
     html_resp = client.get(f"/projects/{project_id}")
     assert "blocked" in html_resp.text
     assert "GMI_API_KEY is not configured" in html_resp.text
-    # The honest-blocked-state disclosure must be present -- never a fake result.
-    assert "not a placeholder result" in html_resp.text
+    # The honest-blocked-state disclosure must be present -- never a fake
+    # result. Copy wording changed with the UI refresh; the guarantee
+    # (explicit statement that nothing was invented) must still hold.
+    assert "No result was invented" in html_resp.text
 
 
 def test_source_json_endpoint_404_for_unknown_source(client):
@@ -86,4 +91,6 @@ def test_storage_backend_is_disclosed_on_the_page(client):
     project_id = create_project(client)
     resp = client.get(f"/projects/{project_id}")
     assert "in-memory-fake" in resp.text
-    assert "not real Backblaze B2" in resp.text
+    # Copy wording changed with the UI refresh; the disclosure that this
+    # is not real B2 storage must still be present, not silently dropped.
+    assert "Backblaze B2 is not connected here yet" in resp.text

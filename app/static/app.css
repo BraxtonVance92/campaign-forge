@@ -1,0 +1,99 @@
+:root {
+  --bg: #08090d;
+  --surface: #101218;
+  --surface-2: #151821;
+  --line: rgba(255,255,255,.095);
+  --text: #f5f2eb;
+  --muted: #9b9da8;
+  --accent: #ff6b35;
+  --accent-2: #ff9d5c;
+  --green: #54d69a;
+  --warning: #ffbd66;
+  --radius: 22px;
+}
+* { box-sizing: border-box; }
+html { color-scheme: dark; }
+body { margin: 0; min-width: 320px; background: var(--bg); color: var(--text); font-family: "DM Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 78% 7%, rgba(255,107,53,.10), transparent 29%), radial-gradient(circle at 10% 70%, rgba(116,82,255,.06), transparent 24%); }
+a { color: inherit; }
+/* Desktop width: was capped at 1180px, leaving ~130px of unused margin per
+   side on a 1440px display (measured). Widened to 1280px -- mid-point of
+   the 1180-1320px target range -- so wide monitors use the screen without
+   stretching form inputs (the grid ratio below still bounds card width). */
+.page-shell { position: relative; width: min(1280px, calc(100% - 48px)); min-height: 100vh; margin: auto; display: flex; flex-direction: column; }
+.site-header { height: 88px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; font: 800 18px/1 "Manrope", sans-serif; letter-spacing: -.5px; border-radius: 8px; }
+.brand > span:last-child > span { color: var(--accent); }
+.brand-mark { width: 29px; height: 29px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding: 6px; border-radius: 8px; background: linear-gradient(145deg, var(--accent), #d94318); box-shadow: 0 7px 24px rgba(255,107,53,.24); }
+.brand-mark span { width: 3px; border-radius: 5px; background: #fff; transform: rotate(20deg); }
+.brand-mark span:nth-child(1) { height: 7px; }.brand-mark span:nth-child(2) { height: 13px; }.brand-mark span:nth-child(3) { height: 10px; }
+.header-status,.environment-pill { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(84,214,154,.1); }
+.text-link { color: var(--muted); text-decoration: none; font-size: 14px; border-radius: 6px; }.text-link:hover { color: var(--text); }
+.home-layout { flex: 1; display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: 92px; padding: 90px 0; }
+.eyebrow { margin-bottom: 20px; color: var(--accent-2); font-size: 12px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }.eyebrow span { display: inline-flex; align-items: center; gap: 8px; }.eyebrow span::before { content:""; width: 24px; height: 1px; background: var(--accent); }
+.hero h1 { max-width: 720px; margin: 0; font: 700 clamp(44px, 5.6vw, 76px)/1.02 "Manrope", sans-serif; letter-spacing: -.055em; }
+.hero h1 em { color: var(--accent); font-style: normal; }
+.hero-copy { max-width: 620px; margin: 28px 0 43px; color: var(--muted); font-size: 18px; line-height: 1.65; }
+.process-row { display: flex; align-items: center; max-width: 660px; }
+.process-item { display: flex; align-items: center; gap: 10px; white-space: nowrap; }.process-item > span { color: var(--accent); font: 700 11px "Manrope"; }.process-item div { display:flex; flex-direction:column; gap:4px; }.process-item strong { font-size:13px; }.process-item small { color:var(--muted); font-size:11px; }.process-line { flex:1; height:1px; margin:0 18px; background:var(--line); }
+.start-card,.content-card { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(155deg, rgba(23,25,34,.95), rgba(14,16,22,.97)); box-shadow: 0 30px 80px rgba(0,0,0,.28); }
+.start-card { overflow:hidden; padding: 40px; }.card-glow { position:absolute; width:180px; height:180px; right:-70px; top:-90px; border-radius:50%; background:rgba(255,107,53,.18); filter:blur(48px); }.card-kicker { color: var(--accent-2); font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }.start-card h2 { margin:11px 0 10px; font:700 27px "Manrope"; letter-spacing:-.035em; }.start-card > p { margin:0 0 28px; color:var(--muted); line-height:1.55; font-size:14px; }
+label { display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:#d9d8d4; }
+.input-wrap { position:relative; }.input-wrap > span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--accent); font-size:12px; }
+input,textarea { width:100%; border:1px solid var(--line); border-radius:11px; outline:none; background:#0c0e13; color:var(--text); font:500 14px "DM Sans"; transition:.2s border-color,.2s box-shadow; }input { height:50px; padding:0 15px; }.input-wrap input { padding-left:40px; }textarea { resize:vertical; min-height:92px; padding:14px 15px; line-height:1.5; }input:focus,textarea:focus { border-color:rgba(255,107,53,.7); box-shadow:0 0 0 3px rgba(255,107,53,.1); }input::placeholder,textarea::placeholder { color:#626570; }
+/* Honest validation state: only after the user has interacted with a
+   required field and left it invalid (native :user-invalid), not while
+   still typing/untouched. Progressive enhancement -- unsupported
+   browsers keep native validation without this extra color cue. */
+input:user-invalid,textarea:user-invalid { border-color: var(--warning); box-shadow: 0 0 0 3px rgba(255,189,102,.12); }
+.field-error { display:none; margin-top:6px; color: var(--warning); font-size:11px; }
+input:user-invalid ~ .field-error,textarea:user-invalid ~ .field-error { display:block; }
+.button { width:100%; min-height:50px; margin-top:14px; padding:0 20px; border:0; border-radius:11px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font:700 14px "DM Sans"; transition:.2s transform,.2s filter; }.button:hover { transform:translateY(-1px); filter:brightness(1.08); }.button-primary { color:#fff; background:linear-gradient(135deg,var(--accent),#e94a1b); box-shadow:0 10px 26px rgba(255,107,53,.2); }.button-fit { width:auto; min-width:180px; margin:0; }
+.button:disabled { cursor:not-allowed; opacity:.72; transform:none!important; filter:none!important; }
+.button .spinner { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.privacy-note { margin-top:20px; padding-top:18px; border-top:1px solid var(--line); color:#727580; font-size:11px; text-align:center; }
+.site-footer { min-height:72px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; color:#5e606a; font-size:11px; letter-spacing:.04em; }
+.project-shell main { padding: 38px 0 84px; }.breadcrumbs { display:flex; gap:9px; margin-bottom:32px; color:#6f727d; font-size:12px; }.breadcrumbs a { text-decoration:none; }.breadcrumbs a:hover { color:var(--text); }.breadcrumbs span:last-child { color:#afb0b7; }
+.project-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:30px; }.project-heading .eyebrow { margin-bottom:12px; }.project-heading h1 { margin:0; font:700 clamp(34px,5vw,54px)/1.08 "Manrope"; letter-spacing:-.045em; }.project-heading p { margin:12px 0 0; color:var(--muted); font-size:15px; }.environment-pill { padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.025); }.environment-pill > span:last-child { display:flex; flex-direction:column; gap:2px; color:#d6d5d0; font-size:12px; }.environment-pill small { color:#737681; font-size:9px; letter-spacing:.1em; text-transform:uppercase; }
+.stepper { list-style:none; margin:45px 0 34px; padding:0; display:flex; align-items:center; }.stepper li:not(.step-line) { display:flex; align-items:center; gap:10px; color:#5f626c; }.stepper li > span { width:30px; height:30px; border:1px solid var(--line); border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:700; }.stepper li div { display:flex; flex-direction:column; gap:3px; }.stepper strong { font-size:12px; }.stepper small { font-size:10px; }.stepper .active { color:var(--text)!important; }.stepper .active > span { color:#fff; border-color:var(--accent); background:var(--accent); box-shadow:0 0 0 5px rgba(255,107,53,.08); }.step-line { flex:1; height:1px; margin:0 18px; background:var(--line); }.step-line.filled { background:var(--accent); }
+.notice { display:flex; gap:13px; padding:15px 17px; border-radius:13px; margin-bottom:20px; }.notice-icon { flex:0 0 auto; width:22px; height:22px; display:grid; place-items:center; border-radius:50%; font-size:11px; font-weight:800; }.notice strong { display:block; margin-bottom:3px; font-size:12px; }.notice p { margin:0; color:var(--muted); font-size:12px; line-height:1.5; overflow-wrap:anywhere; }.notice-neutral { border:1px solid rgba(118,131,167,.16); background:rgba(85,99,135,.07); }.notice-neutral .notice-icon { color:#a8b9e9; background:rgba(121,144,206,.16); }.notice-warning { border:1px solid rgba(255,189,102,.22); background:rgba(255,189,102,.07); }.notice-warning .notice-icon { color:#17120a; background:var(--warning); }
+.content-card { padding:34px; margin-top:20px; }.section-heading { display:flex; align-items:flex-start; gap:15px; }.section-heading > div { flex:1; }.section-heading h2 { margin:0 0 6px; font:700 20px "Manrope"; letter-spacing:-.025em; }.section-heading p { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }.section-number { flex:0 0 auto; width:32px; height:32px; border:1px solid rgba(255,107,53,.35); border-radius:9px; display:grid; place-items:center; color:var(--accent); font:700 10px "Manrope"; background:rgba(255,107,53,.06); }.section-number.complete { border-color:rgba(84,214,154,.3); color:var(--green); background:rgba(84,214,154,.08); }.section-number.warning { border-color:rgba(255,189,102,.3); color:var(--warning); background:rgba(255,189,102,.08); }
+.drop-zone { position:relative; margin:28px 0 25px; padding:44px 24px; border:1px dashed rgba(255,255,255,.18); border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:8px; background:rgba(255,255,255,.018); text-align:center; cursor:pointer; transition:.2s border-color,.2s background; }.drop-zone:hover,.drop-zone:focus-within { border-color:var(--accent); background:rgba(255,107,53,.035); }.drop-zone input { position:absolute; width:1px; height:1px; opacity:0; }.upload-icon { width:42px; height:42px; margin-bottom:5px; border-radius:12px; display:grid; place-items:center; color:var(--accent); background:rgba(255,107,53,.1); font-size:20px; }.drop-zone strong { font-size:13px; }.drop-zone u { color:var(--accent-2); text-underline-offset:3px; }.drop-zone small,.field-group small { color:#6d707b; font-size:11px; font-weight:400; }
+.file-hint { margin:6px 0 0; color: var(--warning); font-size:11px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }.field-group.full { grid-column:1/-1; }.field-group > small { display:block; margin-top:7px; }.action-row { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-top:28px; padding-top:22px; border-top:1px solid var(--line); }.secure-note { color:#6f727d; font-size:11px; }
+/* file-main strong needs white-space:nowrap for text-overflow:ellipsis to
+   actually truncate a long filename -- without it the browser wraps
+   instead of truncating (verified bug, fixed here). */
+.file-row { margin-top:25px; padding:17px; border:1px solid var(--line); border-radius:14px; display:flex; align-items:center; gap:14px; background:rgba(255,255,255,.018); }.file-icon { width:42px; height:42px; flex:0 0 auto; border-radius:11px; display:grid; place-items:center; color:var(--accent); background:rgba(255,107,53,.1); font-size:13px; }.file-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:4px; }.file-main strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; font-size:13px; }.file-main small { color:var(--muted); font-size:10px; overflow-wrap:anywhere; }.badge { display:inline-flex; width:max-content; padding:5px 9px; border-radius:999px; font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }.badge-success { color:var(--green); background:rgba(84,214,154,.1); }.technical-details { margin-top:15px; color:var(--muted); font-size:11px; }.technical-details summary { cursor:pointer; border-radius:6px; }.technical-details dl { display:grid; grid-template-columns:140px 1fr; gap:8px; padding:12px; overflow:hidden; }.technical-details dd { margin:0; min-width:0; overflow-wrap:anywhere; }.technical-details code { color:#b4b5bc; overflow-wrap:anywhere; }
+.analysis-preview { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:25px 0 10px; }.analysis-preview div { padding:17px; border:1px solid var(--line); border-radius:12px; display:flex; align-items:center; gap:10px; color:#c9c8c3; font-size:11px; background:rgba(255,255,255,.015); }.analysis-preview span { color:var(--accent); font-size:16px; }.honesty-note { margin:12px 0 0; color:#777a84; font-size:11px; }
+/* Restructured result: creator summary strip + labeled sections built
+   only from real persisted CreatorProfile fields (no invented data). */
+.profile-summary { display:flex; gap:28px; margin:22px 0 6px; padding:18px 20px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); flex-wrap:wrap; }
+.summary-stat { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.summary-stat span { color:#6f727d; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.summary-stat strong { font-size:14px; font-weight:600; color:#e9e8e3; overflow-wrap:anywhere; }
+.summary-stat.confidence strong { color:var(--green); font:700 22px "Manrope"; }
+.profile-sections { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+.profile-section { padding:20px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
+.profile-section.full { grid-column:1/-1; }
+.profile-section h3 { margin:0 0 12px; display:flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:#c8c7c3; }
+.profile-section .result-icon { color:var(--accent); font-size:14px; }
+.profile-empty { margin:0; color:#6d707b; font-size:12px; font-style:italic; }
+.rec-label { margin:14px 0 8px; font-size:11px; font-weight:700; color:#9a9da6; }
+.rec-label:first-child { margin-top:0; }
+.rec-label.rec-avoid { color:var(--warning); }
+.tag-avoid { color:var(--warning)!important; background:rgba(255,189,102,.08)!important; }
+.results-card .section-heading > .badge { align-self:center; }.tag-list { display:flex; flex-wrap:wrap; gap:7px; }.tag-list span { padding:6px 9px; border-radius:8px; color:#d6d5d0; background:rgba(255,255,255,.055); font-size:11px; overflow-wrap:anywhere; }.limitations { margin-top:20px; padding:17px 20px; border-radius:13px; background:rgba(255,255,255,.025); font-size:12px; }.limitations ul { margin:8px 0 0; padding-left:17px; color:var(--muted); }.limitations li { overflow-wrap:anywhere; }
+/* Focus-visible: buttons and links had no explicit focus style beyond an
+   unreliable browser default against this dark theme -- added explicitly
+   for keyboard navigation. Inputs/textareas already have a custom
+   focus treatment above and are left as-is. */
+.button:focus-visible,.text-link:focus-visible,.brand:focus-visible,.breadcrumbs a:focus-visible,summary:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 3px;
+}
+@media (max-width: 900px) { .home-layout { grid-template-columns:1fr; gap:55px; padding:65px 0; }.hero h1 { max-width:760px; }.start-card { max-width:580px; width:100%; }.project-heading { align-items:flex-start; flex-direction:column; }.environment-pill { align-self:flex-start; } }
+@media (max-width: 640px) { .page-shell { width:min(100% - 28px, 1280px); }.site-header { height:72px; }.header-status { font-size:0; }.header-status .status-dot { display:block; }.home-layout { padding:48px 0; gap:40px; }.hero h1 { font-size:42px; }.hero-copy { margin:20px 0 30px; font-size:16px; }.process-row { align-items:flex-start; justify-content:space-between; }.process-line { display:none; }.process-item { flex-direction:column; align-items:flex-start; gap:5px; }.start-card,.content-card { padding:24px; border-radius:18px; }.project-shell main { padding-top:26px; }.project-heading h1 { font-size:36px; }.stepper li div { display:none; }.step-line { margin:0 10px; }.notice { padding:13px; }.drop-zone { padding:34px 15px; }.action-row { flex-direction:column-reverse; align-items:stretch; }.button-fit { width:100%; }.secure-note { text-align:center; }.analysis-preview,.profile-sections { grid-template-columns:1fr; }.file-row .badge { display:none; }.technical-details dl { grid-template-columns:1fr; }.site-footer { flex-direction:column; justify-content:center; gap:5px; }.project-heading p { line-height:1.5; }.profile-summary { gap:18px; } }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
