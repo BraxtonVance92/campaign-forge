@@ -1,109 +1,114 @@
 # Active Work Packet
 
-## CF-BOOT-001 — Correct CampaignForge sources of truth to restore authorized face-and-voice scope
+## CF-VERIFY-001 — Live GMI/Genblaze capability test: voice cloning and avatar output format
 
-Classification: `DOCS-ONLY`
+Classification: `VERIFICATION`
 
-Consumer: GPT controller/CTO and every later Claude Code runtime packet.
+Consumer: the next runtime packet (`CF-RUN-001`, the single-authorized-creator pilot), which needs enough evidence to choose the first working video path — not a complete answer to every open research question.
 
-Status: `IN_PROGRESS` — amended following a binding founder correction; pending controller review.
+Status: `IN_PROGRESS` — documentation authorized and pushed; live testing begins once `GMI_API_KEY` is confirmed present in the environment without its value being exposed.
 
-### Amendment note
+### Predecessor
 
-This packet originally committed the seven draft sources of truth. The founder subsequently rejected D-005 (excluding face and voice cloning) as incorrect and issued a binding correction: authorized face-and-voice video generation is the core product, not optional or deferred scope. This amendment corrects `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, `docs/ops/DECISION_LOG.md`, `docs/roadmap/CURRENT_ROADMAP.md`, `docs/ops/CURRENT_STATE.md`, and `docs/ops/AUTHORITY_MATRIX.md` to reflect that correction. It remains docs-only.
+`CF-BOOT-001` is `MERGED` at main SHA `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4` (Controller/CTO-approved at exact SHA `9ae223920b0f71aed1831070a5ba9f4924683aec`; see `docs/ops/DECISION_LOG.md` D-012). A read-only documentation research dossier (Genblaze/GMI Cloud, voice-clone providers, face/avatar providers, Backblaze B2, Render, official documentation only) was produced in the maker session on 2026-07-21. This packet resolves only the subset of that dossier's open questions needed to pick a working first video path, using real GMI/Genblaze API calls.
 
-### Founder intent and business outcome
+### Founder/controller decisions already resolved (do not re-ask)
 
-Make every source of truth coherent and truthful about the founder's actual product — authorized creator replication into new playable video via cloned voice and face/avatar generation — so the controller can write a dispatchable provider-verification packet, and so Claude never re-derives or re-proposes the rejected no-face/no-voice direction.
+- The existing GMI inference key was created for CampaignForge and is the credential to use.
+- GMI is the first and only provider to test in this packet. HeyGen is explicitly **not** approved and no HeyGen account is to be created. HeyGen becomes a live option only if this packet's GMI testing proves GMI cannot produce the required reusable face/avatar video result.
+- The $50 spending ceiling covers total project spending (not merely API-calls-only), so hosting and provider costs both draw from the same ceiling.
+- This packet's real spending boundary is a **$20 maximum prepaid GMI account credit balance** — not an in-code dollar reminder. Whoever funds the GMI account funds it with at most $20; neither test call can draw more than what is actually in the account, regardless of GMI's own ambiguous/unverified per-call pricing (see `docs/verification/CF-VERIFY-001.md` pricing research). If GMI requires more than $20 to fund the account at all (e.g., a higher minimum top-up), that is a blocker to report — not a reason to fund more than $20 without further explicit authorization. This $20 remains a sub-limit within the overall $50 project ceiling, not an addition to it.
 
 ### Base
 
 - Repository: `BraxtonVance92/campaign-forge`
 - Base branch: `main`
-- Exact base SHA: `269d2900b1131c793d7cdf2e87655891f5256149`
-- Prior candidate SHA (before this amendment): `7ffd242ed90c8955fbc027997d03eb9529bcc6b9`
+- Exact base SHA: `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4`
 - Maker must fetch and stop if `main` has changed until the controller reconciles the new base.
 
 ### Allowed paths
 
-- `docs/canon/FOUNDER_CANON.md`
-- `docs/canon/PRODUCT_CANON.md`
-- `docs/roadmap/CURRENT_ROADMAP.md`
-- `docs/ops/AUTHORITY_MATRIX.md`
+- `docs/roadmap/CURRENT_ROADMAP.md` (record verified findings against the Phase 0.5 verification block)
 - `docs/ops/CURRENT_STATE.md`
 - `docs/ops/ACTIVE_WORK_PACKET.md`
 - `docs/ops/DECISION_LOG.md`
-- `README.md` only to keep the documentation index accurate; do not claim runtime functionality.
+- `docs/verification/CF-VERIFY-001.md` (create for detailed live-test findings)
+- `.gitignore` only to ensure any local secret/env file used for the live test is excluded (no other content changes)
+- `.github/workflows/cf-verify-001.yml` — see amendment below. This is the one narrow exception to this packet's own general CI/infrastructure-as-code prohibition.
+
+Any other throwaway script needed to make live API calls is written outside the repository (session scratch space), not committed.
+
+### Amendment: authorized CI file for secret entry and execution
+
+This packet's original "Forbidden paths" list (below) excluded all CI files. That is amended for exactly one file: `.github/workflows/cf-verify-001.yml`, a `workflow_dispatch`-only (manually triggered, never on push/PR/schedule) GitHub Actions workflow that reads `GMI_API_KEY` from GitHub's own repository-secret store — the only secure, click-only secret-entry mechanism actually available for this project, since this session has no secret-entry UI and the founder/controller declined terminal and manual-file-based approaches. No other CI, deployment, or infrastructure-as-code file is authorized by this amendment.
+
+### Amendment 2: merging this PR before execution is authorized
+
+`workflow_dispatch` cannot be reliably triggered for a workflow that exists only on a feature branch — GitHub's manual-dispatch UI and API both expect the workflow file to be registered from the default branch. Merging PR #2 (containing only this packet's documentation and the one reviewed workflow file) into `main` is therefore authorized as the next step, distinct from and prior to actually triggering the workflow. Merging is not the same action as execution: merging only makes the workflow dispatchable; a human with repository write access still has to separately add the `GMI_API_KEY` secret and click "Run workflow." Claude Code may merge once this revision's diff has been reviewed, but has not done so as part of producing this revision itself — see Authority boundary.
 
 ### Forbidden paths
 
-- `CLAUDE.md`
-- Any runtime source, deployment, CI, secret, bucket, provider, billing, or infrastructure change.
-- No Render service creation, no deployment, no paid provider calls.
-
-### Dependencies and constraints
-
-- The founder's correction is binding and does not require further approval to record; it is itself the approval.
-- Official rules and current primary technical sources beat summaries.
-- Preserve the exact distinction between repository-verified facts, reported history, assumptions, and plans.
-- Do not copy secrets or personal data into documentation.
-- Do not invent founder approval for any decision the founder has not actually made (for example, specific providers, models, or the technical stack remain `PROPOSED`).
+- `CLAUDE.md`, `docs/canon/*`, `docs/ops/AUTHORITY_MATRIX.md`
+- Any runtime application source, CI, deployment, or infrastructure-as-code file, **except** the single `.github/workflows/cf-verify-001.yml` file described in the amendment above
+- No Render service creation, no production deployment
+- No HeyGen account creation or HeyGen API call
+- No other GitHub Actions workflow, no changes to any existing CI/CD configuration beyond the one new file
 
 ### Required behavior
 
-Every changed document agrees that authorized face-and-voice video generation is core, undeferred product scope, subject to verified per-person consent. No document may state or imply that face or voice generation is excluded, optional, or contest-only.
+Run the smallest, cheapest real GMI/Genblaze API calls that answer exactly two questions:
+
+1. **Voice cloning**: does GMI's `minimax-audio-voice-clone-speech-2.6-hd` produce real cloned-voice audio end to end? Exactly one fixed, hardcoded call, no retries of the paid action (status polling only re-checks the same `request_id`), no user-editable text/source/repeat-count, against the verified endpoint `https://console.gmicloud.ai/api/v1/ie/requestqueue/apikey/requests`, with a predetermined non-personal synthetic reference clip generated on the runner itself — not a real creator's voice, since no verified creator consent record exists yet (per `docs/canon/PRODUCT_CANON.md`'s consent-first rule, Phase 2 of the roadmap has not run). This test proves the mechanism works; it does not produce a usable creator asset.
+2. **Avatar output format**: exactly one fixed, real `heygen-avatar-4` request (same verified endpoint, shortest-sensible hardcoded phrase, no retries, no user-editable duration) that determines whether GMI returns a downloadable/playable media file or only live session/stream fields — not a metadata-only guess.
+
+The real spending boundary for both calls is a **$20 maximum prepaid GMI account credit balance**, not an in-code dollar ceiling — see the "Founder/controller decisions already resolved" section above. GMI's own published sources disagree on the avatar model's billing basis (flat per-request vs. per-second) and do not price the voice-clone model at all on any official static page; rather than paper over that with a precise-looking but potentially wrong in-code number, the account itself cannot be drawn down past what is funded. If either question is answered, or if a call cannot be made safely (e.g., the endpoint fails the runtime host-allowlist check, or the synthetic clip can't be published), stop; do not attempt to resolve every remaining item from the original research dossier (exact HeyGen constraints, disclosure/watermarking rules, etc.) — those remain `UNKNOWN`/deferred and are not gates for `CF-RUN-001` unless they turn out to block the chosen first path.
 
 ### Acceptance checks
 
-1. All seven files exist at the exact paths named by `CLAUDE.md`.
-2. `rg` finds no unresolved angle-bracket placeholders, no planning stand-ins, and no invented secret values in `README.md`, `CLAUDE.md`, or `docs/` (see the test command below for the exact literal patterns checked).
-3. A contradiction scan finds no remaining statement that excludes face cloning, excludes voice cloning, defers face/voice until after the contest, or reduces the product to generic branded imagery.
-4. `docs/ops/CURRENT_STATE.md` does not claim source, CI, deployment, analysis, consent, voice, face, video, or billing evidence that is absent.
-5. `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, and `docs/roadmap/CURRENT_ROADMAP.md` describe the same corrected golden path.
-6. `docs/ops/AUTHORITY_MATRIX.md` requires founder approval for removing face/voice from scope, exceeding the $50 ceiling, production deployment, and contest submission, and requires creator-specific consent for likeness/voice use.
-7. `git diff --check` is clean.
-8. Markdown links and tables render/read cleanly.
+1. Both questions above have a real-evidence answer (actual API request/response, polled to a terminal status), or an explicit note of exactly what blocked the test.
+2. Actual recorded spend is logged call-by-call (provider, model, request purpose, cost) once the GMI console shows it; the account was funded with at most $20 prepaid credit beforehand, so no runtime spend-tracking loop is needed to enforce the boundary — the account balance does that structurally.
+3. `GMI_API_KEY`'s value never appears in any file, commit, log, command output captured to a file, or receipt — only the environment-variable name.
+4. No HeyGen account, credential, or API call exists anywhere in the evidence trail.
+5. `git diff --check` is clean; no placeholder or contradiction regressions in the five live canon/state files.
+6. Findings are labeled `VERIFIED (live test)`, `VERIFIED (official docs)`, `REPORTED`, or `UNKNOWN`.
 
 ### Test commands
 
 ```bash
-test -f docs/canon/FOUNDER_CANON.md
-test -f docs/canon/PRODUCT_CANON.md
-test -f docs/roadmap/CURRENT_ROADMAP.md
-test -f docs/ops/AUTHORITY_MATRIX.md
 test -f docs/ops/CURRENT_STATE.md
-test -f docs/ops/ACTIVE_WORK_PACKET.md
-test -f docs/ops/DECISION_LOG.md
+test -f docs/roadmap/CURRENT_ROADMAP.md
 ! rg -ni '<PROJECT''_NAME>|<FOUNDER''_NAME>|TO''DO|T''BD|IN''SERT|CHANGE''ME' README.md CLAUDE.md docs
-! rg -ni 'exclu(de|ded|des|ding)[^.]*(face|voice)|(face|voice)[^.]*exclu(de|ded|des|ding)' docs
-! rg -ni 'outside the contest MVP|deferred until after the contest' docs
+! rg -n 'sk-[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY|GMI_API_KEY\s*=\s*[\"'"'"'][A-Za-z0-9]' docs
 git diff --check
 ```
 
-No browser, API, security, or accessibility proof is required because the packet is docs-only. Repository/secret hygiene inspection is required.
-
 ### Workflow and receipt
 
-1. Inspect `main` and confirm base SHA unchanged.
-2. Amend the existing `docs/cf-boot-001` branch (already pushed; do not force-push).
-3. Edit only allowed files, run checks, commit, push, and update draft PR #1.
-4. Return the standard receipt from `CLAUDE.md`, with local/remote head equality.
+1. Confirm base SHA unchanged on `main`.
+2. Confirm `GMI_API_KEY` is present in the environment via a presence-only check (non-empty, never echoed) before any call.
+3. Run the fixed voice-clone test call, record result and actual cost.
+4. Run the fixed avatar test call, record result and actual cost.
+5. Both calls are hardcoded, single, and non-repeatable within a single run; the GMI account was funded with at most $20 prepaid credit beforehand, which is the actual structural boundary on total possible spend.
+6. Write findings to `docs/verification/CF-VERIFY-001.md`, update `CURRENT_STATE.md` and `CURRENT_ROADMAP.md` Phase 0.5 accordingly, commit, push, update the draft PR.
+7. Return the standard receipt from `CLAUDE.md`, separating actual recorded spend from any remaining estimate.
 
 ### Rollback
 
-Close draft PR #1 or revert the correction commit(s). No runtime behavior or external system is affected; `main` is untouched.
+Close the draft PR or revert the findings commit. Real paid calls made under this authorization are one-off provider charges with no rollback beyond not repeating them; the fixed, hardcoded, non-repeating design of both calls, combined with a $20 maximum prepaid GMI account balance, bounds total possible exposure structurally rather than by estimate.
 
 ### Authority boundary
 
-Claude may edit allowed paths, test, commit, push the existing feature branch, and update the draft PR. It may not merge, deploy, submit, spend, create a Render service, or alter secrets.
+Claude may make the two GMI/Genblaze live test calls described above once the GMI account has been funded with at most $20 prepaid credit and `GMI_API_KEY`'s presence (not value) is confirmed. Claude cannot fund the GMI account itself — it has no GMI account credentials or console access — so this is a human action, alongside adding the GitHub secret. If funding the account at all requires more than $20 (e.g., a higher minimum top-up than $20), that is a blocker to report, not something Claude is authorized to work around by funding more without new explicit authorization. Claude may not create a HeyGen account or call a HeyGen endpoint, and may not treat this packet as license to run further exploratory paid calls beyond the two questions above.
+
+For the GitHub Actions execution path specifically: Claude may **prepare, push, and (per Amendment 2, once this revision is reviewed) merge** `.github/workflows/cf-verify-001.yml` and this packet's documentation into `main`, since the workflow cannot be reliably dispatched from a feature branch. Merging is authorized as a distinct step from triggering. Claude may **not** trigger (`workflow_dispatch`) the workflow under any circumstance, whether before or after merge. Execution is a separately authorized action — someone with repository write access clicks "Run workflow" in the GitHub UI after adding the `GMI_API_KEY` repository secret and reviewing the merged workflow file. Claude cannot click that button itself (no such control is exposed to any tool available to it) and is not authorized to attempt to trigger it via the API either.
 
 ### Required receipt additions
 
-- Confirmation that the earlier no-face/no-voice direction (D-005) is recorded as REJECTED/SUPERSEDED.
-- Confirmation that no runtime code was implemented.
-- Confirmation that no Render service was created and no deployment occurred.
-- Exact changed files and checks run.
+- Actual recorded spend, call-by-call, with provider, model, and cost.
+- Explicit answer (or explicit block reason) for each of the two required questions.
+- Confirmation that no HeyGen account/call was created.
+- Confirmation that no runtime code was implemented and no service was deployed.
 
 ### Next dependent block
 
-`CF-VERIFY-001`: provider capability and architecture verification for authorized voice cloning and face/avatar generation (Roadmap Phase 0.5) — answer, with cited evidence, which provider(s) support these capabilities, their input/output/cost/latency shape, and the narrowest Render-deployable architecture, before any runtime implementation packet is written.
+`CF-RUN-001`: single-authorized-creator runtime pilot, scoped using whichever first working video path this packet's findings support (GMI end-to-end if proven, or a documented fallback if not). Not to be written until this packet's two questions are answered or explicitly blocked.
