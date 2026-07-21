@@ -3,20 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CampaignForge</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
-    input { width: 100%; padding: 0.5rem; margin-top: 0.25rem; box-sizing: border-box; }
-    button { margin-top: 1rem; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
-  </style>
+  <meta name="theme-color" content="#08090d">
+  <title>CampaignForge — Creator intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <h1>CampaignForge</h1>
-  <p>Smallest real product flow (CF-RUN-001): upload one authorized creator video, run real analysis, persist and display the result.</p>
-  <form action="/projects" method="post">
-    <label for="name">Project name</label>
-    <input id="name" name="name" type="text" required placeholder="e.g. Colton test project">
-    <button type="submit">Create project</button>
-  </form>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="CampaignForge home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Campaign<span>Forge</span></span>
+      </a>
+      <div class="header-status"><span class="status-dot"></span> Private workspace</div>
+    </header>
+
+    <main class="home-layout">
+      <section class="hero">
+        <div class="eyebrow"><span>Creator intelligence</span></div>
+        <h1>Turn one great video into your next <em>winning idea.</em></h1>
+        <p class="hero-copy">CampaignForge studies the content you authorize, finds the patterns that make it work, and builds a creator profile you can actually use.</p>
+
+        <div class="process-row" aria-label="Three step process">
+          <div class="process-item"><span>01</span><div><strong>Upload</strong><small>Authorized content</small></div></div>
+          <div class="process-line"></div>
+          <div class="process-item"><span>02</span><div><strong>Analyze</strong><small>Creative patterns</small></div></div>
+          <div class="process-line"></div>
+          <div class="process-item"><span>03</span><div><strong>Create</strong><small>Better content</small></div></div>
+        </div>
+      </section>
+
+      <section class="start-card" aria-labelledby="start-title">
+        <div class="card-glow"></div>
+        <div class="card-kicker">New analysis</div>
+        <h2 id="start-title">Start a creator project</h2>
+        <p>Name the creator or campaign you want to learn from. You’ll upload the authorized video next.</p>
+        <form action="/projects" method="post">
+          <label for="name">Project name</label>
+          <div class="input-wrap">
+            <span aria-hidden="true">✦</span>
+            <input id="name" name="name" type="text" required maxlength="120" autocomplete="off" placeholder="e.g. Colton creator analysis">
+          </div>
+          <button class="button button-primary" type="submit"><span>Create project</span><span aria-hidden="true">→</span></button>
+        </form>
+        <div class="privacy-note"><span aria-hidden="true">◇</span> Your content stays private and is only used with your permission.</div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>CampaignForge</span><span>Built for creators, not algorithms.</span></footer>
+  </div>
 </body>
 </html>
