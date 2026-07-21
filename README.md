@@ -3,7 +3,7 @@ AI campaign builder using Genblaze and Backblaze B2
 
 ## Status
 
-`CF-RUN-001` (in progress): the smallest real product slice — upload one authorized creator video, run real analysis (or an honest blocked state if `GMI_API_KEY` isn't configured), persist the result, and display/restore it. This is a narrow, unpolished proof slice, not the full contest MVP. Real Backblaze B2 credentials are also not configured in the environment this was built in; storage falls back to local disk in that case, clearly labeled as such in the running app (never presented as B2).
+`CF-RUN-001` (merged): the smallest real product slice — upload one authorized creator video, run real analysis (or an honest blocked state if `GMI_API_KEY` isn't configured), persist the result, and display/restore it. This is a narrow proof slice, not the full contest MVP. `CF-RUN-002` (active, blocked on credentials) picks up from here: run one genuinely live analysis once real `GMI_API_KEY` and Backblaze B2 credentials are supplied — see `docs/ops/CURRENT_STATE.md` for the exact setup instruction. Neither GMI nor B2 credentials are configured in the environment this was built in; storage falls back to local disk in that case, clearly labeled as such in the running app (never presented as B2), and analysis honestly reports itself blocked rather than fake a result.
 
 ## Running it locally
 
