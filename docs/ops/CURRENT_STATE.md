@@ -1,21 +1,20 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21 (canon repair in progress following a founder product correction).
+Last updated: 2026-07-21 (CF-BOOT-001 merged; CF-VERIFY-001 dispatched).
 
-## State: IN_PROGRESS — canon repair, pending controller review
+## State: IN_PROGRESS — CF-VERIFY-001 (live provider verification), not yet started
 
-The founder issued a binding correction rejecting the prior no-face/no-voice decision (D-005). Authorized face-and-voice video generation is now recorded as core product scope (`docs/ops/DECISION_LOG.md` D-010, D-011). This correction is reflected in `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, `docs/roadmap/CURRENT_ROADMAP.md`, `docs/ops/AUTHORITY_MATRIX.md`, and this file. The bootstrap gate remains blocked pending controller approval.
+The founder reviewed and approved the corrected sources of truth at exact SHA `9ae223920b0f71aed1831070a5ba9f4924683aec` ("APPROVE AS-IS"), and PR #1 was merged into `main`. The bootstrap gate is now cleared. Authorized face-and-voice video generation remains recorded as core product scope (`docs/ops/DECISION_LOG.md` D-010, D-011).
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `269d2900b1131c793d7cdf2e87655891f5256149` (unchanged since the original bootstrap audit; re-verified before this correction).
-- Active correction branch: `docs/cf-boot-001`.
-- Predecessor candidate SHA: `09fd09594591b1f08e6f4a23fd2284813d1f9e35` (an earlier head of `docs/cf-boot-001`, since superseded by further commits on the branch; not the current head).
-- The exact current candidate SHA is not recorded in this file. A commit cannot contain its own resulting SHA, so any SHA written here as "current" becomes stale the instant that commit is made. The exact current candidate SHA is maintained in PR #1's metadata (`headRefOid`) and in checkpoint/review receipts, which are generated after the commit exists.
-- Pull request: #1 (draft, open), targeting `main`.
-- At the recorded main SHA, the repository contains a minimal `README.md` and root `CLAUDE.md` operating contract. No runtime application source exists on `main`.
+- Main head SHA: `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4` (merge commit for PR #1, containing the CF-BOOT-001 docs pack).
+- PR #1: `MERGED` (was draft/open; approved by founder at head `9ae223920b0f71aed1831070a5ba9f4924683aec`, then merged via standard merge commit — no branch protection was configured on `main` at merge time).
+- Active packet branch: `docs/cf-verify-001`, created from the merged `main`.
+- The exact current candidate SHA for any in-flight branch is not recorded in this file. A commit cannot contain its own resulting SHA, so any SHA written here as "current" becomes stale the instant that commit is made. The exact current candidate SHA is maintained in the relevant PR's metadata (`headRefOid`) and in checkpoint/review receipts, generated after the commit exists.
+- At the merged main SHA, the repository contains `README.md`, root `CLAUDE.md`, and the seven canonical `docs/` files. No runtime application source exists on `main`.
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
 
 ### Reported history, not repository-verified
@@ -38,7 +37,7 @@ These claims do not establish that the GitHub repository contains the implementa
 - Versioned creator profile persistence.
 - Real GMI image/video generation.
 - Exact automated spend reporting.
-- CI, reviewed merge, repo-linked deployment, live acceptance, or any Render service.
+- CI, reviewed merge (of runtime code — the CF-BOOT-001 merge was docs-only), repo-linked deployment, live acceptance, or any Render service.
 
 ## External facts verified 2026-07-21
 
@@ -46,23 +45,23 @@ These claims do not establish that the GitHub repository contains the implementa
 - Required stack: Backblaze B2 plus Genblaze; GMI Cloud is optional but supported.
 - Required submission: working URL, repository/setup instructions, providers/models, B2/Genblaze explanation, and public demo video under three minutes.
 - Judging criteria are equally weighted: utility, production readiness, B2 orchestration, Genblaze use.
-- Genblaze's current public repository describes a Python 3.11+ SDK, B2/S3 storage backend, provider adapters including GMI Cloud, pipeline events, and canonical provenance manifests.
-- Whether Genblaze/GMI Cloud directly support authorized voice cloning or face/avatar generation is Unknown — verification required (see `docs/roadmap/CURRENT_ROADMAP.md` Phase 0.5).
+- Genblaze SDK v0.5.0 (released 2026-07-17) is an orchestration framework (Pipeline/Step/ObjectStorageSink/Manifest); it does not generate media itself. It has provider adapters for GMICloud, NVIDIA NIM, OpenAI, Google, Runway, Luma, Decart (video/image) and GMICloud, ElevenLabs, MiniMax, NVIDIA NIM, OpenAI, Stability, LMNT, Hume, AssemblyAI (audio). Source: https://github.com/backblaze-labs/genblaze (accessed 2026-07-21).
+- GMI Cloud REST API base is `https://api.gmi-serving.com/v1`, Bearer-token auth, OpenAI-compatible for chat models. Source: https://docs.gmicloud.ai/ (accessed 2026-07-21).
+- GMI Cloud lists a voice-clone model (`minimax-audio-voice-clone-speech-2.6-hd`) and an avatar model (`heygen-avatar-4`, delivered as a persistent WebRTC streaming session, not confirmed to produce a downloadable batch video file). Whether Genblaze's `Pipeline`/`Step` can actually invoke either of these end-to-end is UNKNOWN — the only public Genblaze/GMI sample repository demonstrates image-to-video only, not voice or avatar steps. Source: https://github.com/backblaze-labs/genblaze-gmicloud-pipeline; https://www.gmicloud.ai/en/blog/managed-generative-media-api (accessed 2026-07-21).
+- HeyGen's own direct API (outside Genblaze) offers a Digital Twin/Avatar V product with officially quoted pricing (Digital Twin creation $1.00/call; Avatar V video $0.0667/sec; pay-as-you-go, no free tier) and a consent flow where Level 1 (hosted webcam recording) is available to all customers without an Enterprise account. Training-footage length/resolution constraints (reported as 2-5 minutes, 720p+) were not confirmed on a directly-fetched official reference page this pass and remain to be re-verified. Sources: https://developers.heygen.com/docs/pricing; https://developers.heygen.com/docs/avatar-consent (accessed 2026-07-21).
+- Backblaze B2 storage costs $0.005/GB/month with 10GB free; download $0.01/GB with 1GB/day free and free egress up to 3x average storage. CORS rules (up to 100/bucket) and scoped application-key capabilities (`readFiles`, `writeFiles`, `listFiles`, etc.) are documented. Sources: https://www.backblaze.com/docs/cloud-storage-cross-origin-resource-sharing-rules; https://www.backblaze.com/docs/cloud-storage-application-keys (accessed 2026-07-21).
+- Render background workers and persistent disks require a paid plan (not available on the free tier); free web services get 750 instance-hours/month and spin down after 15 minutes idle. Starter web service is reported at $7/month, persistent disk at $0.25/GB/month. Sources: https://render.com/docs/background-workers; https://render.com/docs/free; https://render.com/docs/blueprint-spec (accessed 2026-07-21).
 
-Sources:
-
-- https://backblaze-generative-media.devpost.com/rules
-- https://github.com/backblaze-labs/genblaze
-- https://github.com/backblaze-labs/genblaze-gmicloud-pipeline
+Full findings, architecture options, and cost/latency estimates are recorded in the CF-VERIFY-001 research dossier delivered in the maker session on 2026-07-21; that dossier is the working reference until its findings are folded into a future revision of this file or `docs/roadmap/CURRENT_ROADMAP.md`.
 
 ## Actual recorded spend
 
-Unknown. No billing export or provider dashboard evidence was supplied. The $50 ceiling remains binding; do not subtract estimates from it as if they were charges.
+Unknown. No billing export or provider dashboard evidence was supplied. The $50 ceiling remains binding; do not subtract estimates from it as if they were charges. All costs cited above are estimates or officially published rates, not actual recorded charges — no paid provider call has been made.
 
 ## Blocker
 
-The corrected sources of truth must be reviewed by the controller for coherence, then approved and merged. Provider capability verification for authorized voice cloning and face/avatar generation (Phase 0.5) has not started. The prior Sites source has not been recovered into GitHub.
+`CF-VERIFY-001` (see `docs/ops/ACTIVE_WORK_PACKET.md`) has open items that require founder input before any live paid test call can run: confirmation of the HeyGen-direct + GMI/MiniMax provider split, new HeyGen API credentials (a new paid service), and a ruling on whether the $50 ceiling is meant to cover hosting or API calls only. The prior Sites source has not been recovered into GitHub.
 
 ## Next safe action
 
-Controller reviews the corrected canon on PR #1 for coherence with the founder's face-and-voice correction. Once approved and merged, the next packet is provider capability and architecture verification (Phase 0.5), not runtime implementation.
+Founder/controller resolves the CF-VERIFY-001 open items listed above. Once resolved, Claude Code executes the narrow, explicitly-scoped live verification calls defined in that packet, strictly within whatever budget and credential authorization is given.

@@ -1,109 +1,101 @@
 # Active Work Packet
 
-## CF-BOOT-001 — Correct CampaignForge sources of truth to restore authorized face-and-voice scope
+## CF-VERIFY-001 — Live provider capability verification for authorized voice cloning and face/avatar generation
 
-Classification: `DOCS-ONLY`
+Classification: `VERIFICATION`
 
-Consumer: GPT controller/CTO and every later Claude Code runtime packet.
+Consumer: the next runtime packet (`CF-RUN-001`, the single-authorized-creator pilot), which must not be written or dispatched until this packet's findings exist.
 
-Status: `IN_PROGRESS` — amended following a binding founder correction; pending controller review.
+Status: `PLANNED` — dispatched by the founder following merge of `CF-BOOT-001`; has open items requiring founder resolution before live paid calls can run (see "Founder items to resolve" below).
 
-### Amendment note
+### Predecessor
 
-This packet originally committed the seven draft sources of truth. The founder subsequently rejected D-005 (excluding face and voice cloning) as incorrect and issued a binding correction: authorized face-and-voice video generation is the core product, not optional or deferred scope. This amendment corrects `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, `docs/ops/DECISION_LOG.md`, `docs/roadmap/CURRENT_ROADMAP.md`, `docs/ops/CURRENT_STATE.md`, and `docs/ops/AUTHORITY_MATRIX.md` to reflect that correction. It remains docs-only.
+`CF-BOOT-001` is `MERGED` at main SHA `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4` (founder-approved at exact SHA `9ae223920b0f71aed1831070a5ba9f4924683aec`). A read-only documentation research dossier was already produced in the maker session on 2026-07-21, covering Genblaze/GMI Cloud, voice-clone providers, face/avatar providers, Backblaze B2, and Render, using official documentation only. This packet exists to resolve that dossier's `UNKNOWN — live test required` items with real, minimal, budgeted API calls — it is narrower than a full runtime build.
 
 ### Founder intent and business outcome
 
-Make every source of truth coherent and truthful about the founder's actual product — authorized creator replication into new playable video via cloned voice and face/avatar generation — so the controller can write a dispatchable provider-verification packet, and so Claude never re-derives or re-proposes the rejected no-face/no-voice direction.
+Before any runtime code is written, prove with real (not documentation-inferred) evidence which providers can actually deliver authorized voice cloning and face/avatar video generation end to end, at what cost and latency, so `CF-RUN-001` can be scoped accurately instead of discovered mid-build.
 
 ### Base
 
 - Repository: `BraxtonVance92/campaign-forge`
 - Base branch: `main`
-- Exact base SHA: `269d2900b1131c793d7cdf2e87655891f5256149`
-- Prior candidate SHA (before this amendment): `7ffd242ed90c8955fbc027997d03eb9529bcc6b9`
-- Maker must fetch and stop if `main` has changed until the controller reconciles the new base.
+- Exact base SHA: `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4`
+- Maker must fetch and stop if `main` has changed until the controller/founder reconciles the new base.
 
 ### Allowed paths
 
-- `docs/canon/FOUNDER_CANON.md`
-- `docs/canon/PRODUCT_CANON.md`
-- `docs/roadmap/CURRENT_ROADMAP.md`
-- `docs/ops/AUTHORITY_MATRIX.md`
+- `docs/roadmap/CURRENT_ROADMAP.md` (record verified findings against the Phase 0.5 verification block)
 - `docs/ops/CURRENT_STATE.md`
 - `docs/ops/ACTIVE_WORK_PACKET.md`
 - `docs/ops/DECISION_LOG.md`
-- `README.md` only to keep the documentation index accurate; do not claim runtime functionality.
+- A new `docs/verification/CF-VERIFY-001.md` findings file (create if useful for the length of evidence gathered)
 
 ### Forbidden paths
 
-- `CLAUDE.md`
-- Any runtime source, deployment, CI, secret, bucket, provider, billing, or infrastructure change.
-- No Render service creation, no deployment, no paid provider calls.
+- `CLAUDE.md`, `docs/canon/*`, `docs/ops/AUTHORITY_MATRIX.md` (no product/authority redefinition in a verification packet)
+- Any runtime application source, CI, deployment, or infrastructure-as-code file
+- No Render service creation, no production deployment
 
-### Dependencies and constraints
+### Founder items to resolve before any paid call runs
 
-- The founder's correction is binding and does not require further approval to record; it is itself the approval.
-- Official rules and current primary technical sources beat summaries.
-- Preserve the exact distinction between repository-verified facts, reported history, assumptions, and plans.
-- Do not copy secrets or personal data into documentation.
-- Do not invent founder approval for any decision the founder has not actually made (for example, specific providers, models, or the technical stack remain `PROPOSED`).
+1. **Provider split confirmation**: the dossier recommends HeyGen's direct API (not GMI's `heygen-avatar-4` wrapper) for face/avatar video, plus MiniMax voice-clone via GMI/Genblaze for voice — a different combination than `docs/canon/PRODUCT_CANON.md`'s original GMI-only assumption. Needs a founder/controller nod before it's treated as binding.
+2. **New paid service**: HeyGen is a new provider with no existing credentials in this project. Creating an account and API key is a new paid service under `docs/ops/AUTHORITY_MATRIX.md` ("Add paid service or exceed $50 project ceiling" — Founder approves). Claude Code will not sign up for or fund a HeyGen account without this approval.
+3. **Ceiling scope**: does the $50 ceiling cover hosting (Render Starter/worker, ~$7-14/month) or only one-off provider API calls? This changes which architecture option from the dossier is viable and must be a founder ruling, not an assumption.
+4. **GMI key**: a GMI inference key was reported (not repository-verified) as already saved in a hosted environment. If the founder wants that key reused rather than a new one issued, they must confirm it is still valid and provide it only through an approved secret-store mechanism — never in chat, commit, or receipt.
 
-### Required behavior
+### Required behavior (once resolved)
 
-Every changed document agrees that authorized face-and-voice video generation is core, undeferred product scope, subject to verified per-person consent. No document may state or imply that face or voice generation is excluded, optional, or contest-only.
+Answer, with cited evidence from an actual API response (not documentation alone), each `UNKNOWN` item from the CF-VERIFY-001 dossier:
+
+- Does Genblaze's `Pipeline`/`Step` successfully invoke the MiniMax voice-clone model through the `genblaze-gmicloud` adapter end to end (not just the image/video sample path)?
+- Does GMI's `heygen-avatar-4` model return a downloadable/playable video file in any mode, or only a live WebRTC session?
+- What are HeyGen's actual training-footage constraints (length, resolution, format) per a live API response or authoritative reference page, not a secondhand summary?
+- What is the actual measured latency for: a MiniMax voice-clone call; a HeyGen Digital Twin creation; a HeyGen Avatar V video render?
+- What is the actual current per-model price shown in the GMI console for the specific models used (GMI's console-only pricing was not visible to documentation-only research)?
+- What disclosure/watermarking requirements, if any, are stated in either provider's current terms?
 
 ### Acceptance checks
 
-1. All seven files exist at the exact paths named by `CLAUDE.md`.
-2. `rg` finds no unresolved angle-bracket placeholders, no planning stand-ins, and no invented secret values in `README.md`, `CLAUDE.md`, or `docs/` (see the test command below for the exact literal patterns checked).
-3. A contradiction scan finds no remaining statement that excludes face cloning, excludes voice cloning, defers face/voice until after the contest, or reduces the product to generic branded imagery.
-4. `docs/ops/CURRENT_STATE.md` does not claim source, CI, deployment, analysis, consent, voice, face, video, or billing evidence that is absent.
-5. `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, and `docs/roadmap/CURRENT_ROADMAP.md` describe the same corrected golden path.
-6. `docs/ops/AUTHORITY_MATRIX.md` requires founder approval for removing face/voice from scope, exceeding the $50 ceiling, production deployment, and contest submission, and requires creator-specific consent for likeness/voice use.
-7. `git diff --check` is clean.
-8. Markdown links and tables render/read cleanly.
+1. Every `UNKNOWN — live test required` item from the dossier has either a cited real-evidence answer or an explicit note that it remains blocked on a founder item above.
+2. Any real API call made is the smallest and cheapest that answers the question (e.g., the shortest allowed reference clip, the shortest test video), with its exact cost recorded against actual, not estimated, spend.
+3. Cumulative actual spend recorded and reconciled against the $50 ceiling before and after each paid call.
+4. No credential value appears in any file, commit, log, or receipt — only environment-variable names.
+5. `git diff --check` is clean; no placeholder or contradiction regressions in the five live canon/state files (same scan as `CF-BOOT-001`).
+6. Findings are written as evidence, distinctly labeled `VERIFIED (live test)`, `VERIFIED (official docs)`, `REPORTED`, or `UNKNOWN`, per the discipline established in the CF-BOOT-001 correction.
 
 ### Test commands
 
 ```bash
-test -f docs/canon/FOUNDER_CANON.md
-test -f docs/canon/PRODUCT_CANON.md
-test -f docs/roadmap/CURRENT_ROADMAP.md
-test -f docs/ops/AUTHORITY_MATRIX.md
 test -f docs/ops/CURRENT_STATE.md
-test -f docs/ops/ACTIVE_WORK_PACKET.md
-test -f docs/ops/DECISION_LOG.md
+test -f docs/roadmap/CURRENT_ROADMAP.md
 ! rg -ni '<PROJECT''_NAME>|<FOUNDER''_NAME>|TO''DO|T''BD|IN''SERT|CHANGE''ME' README.md CLAUDE.md docs
-! rg -ni 'exclu(de|ded|des|ding)[^.]*(face|voice)|(face|voice)[^.]*exclu(de|ded|des|ding)' docs
-! rg -ni 'outside the contest MVP|deferred until after the contest' docs
+! rg -n 'sk-[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' docs
 git diff --check
 ```
 
-No browser, API, security, or accessibility proof is required because the packet is docs-only. Repository/secret hygiene inspection is required.
-
 ### Workflow and receipt
 
-1. Inspect `main` and confirm base SHA unchanged.
-2. Amend the existing `docs/cf-boot-001` branch (already pushed; do not force-push).
-3. Edit only allowed files, run checks, commit, push, and update draft PR #1.
-4. Return the standard receipt from `CLAUDE.md`, with local/remote head equality.
+1. Confirm base SHA unchanged on `main`.
+2. Resolve the founder items above, or proceed only with the zero-cost/no-new-credential sub-questions if the founder has not yet responded (for example, re-fetching a HeyGen reference page that failed to render fully in the prior research pass costs nothing and needs no new credential).
+3. For any item requiring spend or new credentials, wait for explicit founder authorization naming the exact provider, exact estimated cost, and exact ceiling headroom before making the call.
+4. Record findings, commit, push, open/update a draft PR.
+5. Return the standard receipt from `CLAUDE.md`, including actual recorded spend separated from estimates.
 
 ### Rollback
 
-Close draft PR #1 or revert the correction commit(s). No runtime behavior or external system is affected; `main` is untouched.
+Close the draft PR or revert the findings commit. No runtime behavior or external system is affected by the documentation side of this packet; any real paid call made under explicit authorization is a one-off provider charge with no rollback beyond not repeating it.
 
 ### Authority boundary
 
-Claude may edit allowed paths, test, commit, push the existing feature branch, and update the draft PR. It may not merge, deploy, submit, spend, create a Render service, or alter secrets.
+Claude may branch, research, run free/already-authorized-cost read-only checks, commit, push, and open a draft PR without further approval. Claude may not create a HeyGen (or other new provider) account, spend against the $50 ceiling, or use the reported GMI key until the founder resolves the four items above with an explicit, named authorization.
 
 ### Required receipt additions
 
-- Confirmation that the earlier no-face/no-voice direction (D-005) is recorded as REJECTED/SUPERSEDED.
-- Confirmation that no runtime code was implemented.
-- Confirmation that no Render service was created and no deployment occurred.
-- Exact changed files and checks run.
+- Actual recorded spend (if any), separated from estimated spend, with provider, model, and exact cost per call.
+- Explicit confirmation of which founder items remain unresolved, if any.
+- Confirmation that no runtime code was implemented and no service was deployed.
 
 ### Next dependent block
 
-`CF-VERIFY-001`: provider capability and architecture verification for authorized voice cloning and face/avatar generation (Roadmap Phase 0.5) — answer, with cited evidence, which provider(s) support these capabilities, their input/output/cost/latency shape, and the narrowest Render-deployable architecture, before any runtime implementation packet is written.
+`CF-RUN-001`: single-authorized-creator runtime pilot (consent capture -> B2 upload -> real analysis -> script -> cloned voice -> face/avatar video -> B2 persistence -> restore/playback), scoped using this packet's live-verified findings. Not to be written until CF-VERIFY-001 is `REVIEW_READY`.
