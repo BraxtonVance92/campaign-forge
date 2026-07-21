@@ -1,0 +1,231 @@
+name: CF-VERIFY-001 GMI Live Test
+
+# Manually triggered only. This workflow never runs on push, pull_request, schedule,
+# or any other automatic event. Per docs/ops/ACTIVE_WORK_PACKET.md (CF-VERIFY-001),
+# Claude Code is authorized to prepare and push this file, but is NOT authorized to
+# trigger it or merge the PR that contains it. A human with repository write access
+# must add the GMI_API_KEY repository secret (Settings > Secrets and variables >
+# Actions > New repository secret) and click "Run workflow" to execute it.
+#
+# Scope: exactly two questions, per CF-VERIFY-001's authorized scope, capped at $5
+# total actual spend:
+#   1. Does GMI's minimax-audio-voice-clone-speech-2.6-hd model produce real cloned
+#      audio end to end? (one paid request, reported ~$0.10, unverified)
+#   2. Does GMI's avatar model expose enough metadata to tell whether it can return
+#      a downloadable video file, vs. only a live WebRTC session? (introspection
+#      only -- no full paid avatar render is attempted here, to stay well under cap)
+#
+# The secret's value is never printed, echoed, or written to any log or summary.
+# GitHub Actions also automatically masks any exact-match occurrence of a
+# registered secret value in logs, as defense in depth on top of this workflow
+# never referencing it outside a single env: binding per step.
+#
+# Known limitation, stated plainly rather than hidden: the exact request path for
+# GMI's voice-clone endpoint and the exact shape of avatar-model metadata were not
+# confirmed against a live API response as of when this workflow was written --
+# only against static documentation and a third-party quickstart page. Both
+# endpoint URLs are exposed as dispatch inputs specifically so a human who has
+# console access to double-check the current GMI docs can correct them at
+# trigger-time without needing another code change.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type RUN to confirm you accept this run''s spend, bounded by the $5 CF-VERIFY-001 cap'
+        required: true
+        default: ''
+      run_voice_test:
+        description: 'Run Test 1: GMI voice-clone connectivity (one paid request, reported ~$0.10, unverified)'
+        type: boolean
+        default: true
+      run_avatar_test:
+        description: 'Run Test 2: GMI avatar model metadata introspection (no full paid render attempted)'
+        type: boolean
+        default: true
+      source_audio_url:
+        description: 'Public HTTPS URL to a short (<8s), non-personal, placeholder reference clip for Test 1. Never a real creator sample -- no verified consent record exists yet.'
+        required: false
+        default: ''
+      test_text:
+        description: 'Short text for Test 1 to synthesize'
+        required: false
+        default: 'This is a connectivity test for CampaignForge verification. No real creator voice is used.'
+      voice_clone_endpoint:
+        description: 'GMI voice-clone request endpoint (inferred from documentation -- verify against the current GMI console/docs before running and correct here if needed)'
+        required: false
+        default: 'https://api.gmi-serving.com/v1/ie/requestqueue/apikey/requests'
+      model_list_endpoint:
+        description: 'GMI model-listing endpoint used for the Test 2 introspection check'
+        required: false
+        default: 'https://api.gmi-serving.com/v1/models'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cf-verify-001-gmi-live-test
+  cancel-in-progress: false
+
+jobs:
+  gmi-live-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Guard - require explicit confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RUN" ]; then
+            echo "::error::Confirmation input must be exactly 'RUN'. Aborting before any API call or secret access."
+            exit 1
+          fi
+
+      - name: Guard - require GMI_API_KEY secret to be configured
+        env:
+          GMI_API_KEY: ${{ secrets.GMI_API_KEY }}
+        run: |
+          if [ -z "$GMI_API_KEY" ]; then
+            echo "::error::GMI_API_KEY repository secret is not set. Add it under Settings > Secrets and variables > Actions, then re-run."
+            exit 1
+          fi
+          echo "GMI_API_KEY is present (length: ${#GMI_API_KEY} characters). Its value is never printed by this workflow."
+
+      - name: Set up Python
+        if: ${{ github.event.inputs.run_voice_test == 'true' || github.event.inputs.run_avatar_test == 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        if: ${{ github.event.inputs.run_voice_test == 'true' || github.event.inputs.run_avatar_test == 'true' }}
+        run: pip install requests
+
+      - name: Test 1 - GMI voice clone connectivity (MiniMax speech-2.6-hd)
+        if: ${{ github.event.inputs.run_voice_test == 'true' }}
+        env:
+          GMI_API_KEY: ${{ secrets.GMI_API_KEY }}
+          SOURCE_AUDIO_URL: ${{ github.event.inputs.source_audio_url }}
+          TEST_TEXT: ${{ github.event.inputs.test_text }}
+          VOICE_CLONE_ENDPOINT: ${{ github.event.inputs.voice_clone_endpoint }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, sys, time
+          import requests
+
+          key = os.environ["GMI_API_KEY"]
+          source_audio_url = os.environ.get("SOURCE_AUDIO_URL", "").strip()
+          test_text = os.environ.get("TEST_TEXT", "").strip()
+          endpoint = os.environ["VOICE_CLONE_ENDPOINT"].strip()
+
+          lines = ["## CF-VERIFY-001 -- Test 1: GMI voice clone (MiniMax speech-2.6-hd)", ""]
+
+          if not source_audio_url:
+              lines.append(
+                  "BLOCKED: no source_audio_url was provided at dispatch time. This must be a "
+                  "short (<8s), non-personal, placeholder reference clip -- never a real "
+                  "creator sample without a verified consent record. Re-run with a valid "
+                  "public HTTPS URL to answer this question. No API call was made; no charge "
+                  "was incurred."
+              )
+              print("\n".join(lines))
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                  f.write("\n".join(lines) + "\n")
+              sys.exit(0)
+
+          payload = {
+              "model": "minimax-audio-voice-clone-speech-2.6-hd",
+              "payload": {"text": test_text, "source_audio": source_audio_url},
+          }
+          headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+          start = time.time()
+          try:
+              resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
+              elapsed = time.time() - start
+              # Headers (which contain the Authorization value) are never logged, only status/body.
+              lines.append(f"Endpoint: {endpoint}")
+              lines.append(f"HTTP status: {resp.status_code}")
+              lines.append(f"Latency: {elapsed:.2f}s")
+              lines.append("")
+              lines.append("Response body (truncated, first 2000 chars):")
+              lines.append("```")
+              lines.append(resp.text[:2000])
+              lines.append("```")
+              lines.append("")
+              lines.append(
+                  "Actual cost: not returned in this response. GMI's documented estimate for "
+                  "this model is ~$0.10/request (REPORTED via search, not independently "
+                  "confirmed in official static docs). Verify the real charge in the GMI "
+                  "console after this run and record it in docs/verification/CF-VERIFY-001.md."
+              )
+          except requests.RequestException as e:
+              lines.append(f"EXCEPTION calling GMI voice-clone endpoint: {type(e).__name__}: {e}")
+              lines.append("If the request never reached GMI, no charge should have occurred -- verify in the GMI console.")
+
+          print("\n".join(lines))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("\n".join(lines) + "\n")
+          PYEOF
+
+      - name: Test 2 - GMI avatar endpoint output-format introspection (no paid render)
+        if: ${{ github.event.inputs.run_avatar_test == 'true' }}
+        env:
+          GMI_API_KEY: ${{ secrets.GMI_API_KEY }}
+          MODEL_LIST_ENDPOINT: ${{ github.event.inputs.model_list_endpoint }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          import requests
+
+          key = os.environ["GMI_API_KEY"]
+          endpoint = os.environ["MODEL_LIST_ENDPOINT"].strip()
+          headers = {"Authorization": f"Bearer {key}"}
+
+          lines = ["## CF-VERIFY-001 -- Test 2: GMI avatar endpoint output format", ""]
+          lines.append(
+              "This step only queries model/account metadata. No full paid avatar render "
+              "is attempted here, to stay well under the $5 cap. It checks whether GMI's "
+              "model listing exposes enough detail to tell whether the avatar model "
+              "(e.g. heygen-avatar-4) returns a downloadable file or only a live session."
+          )
+          lines.append(
+              "\nKnown limitation: the exact schema for avatar-specific metadata was not "
+              "confirmed against a live response when this workflow was written -- this "
+              "call is exploratory evidence, not a guaranteed answer."
+          )
+
+          try:
+              resp = requests.get(endpoint, headers=headers, timeout=30)
+              lines.append(f"\nEndpoint: {endpoint}")
+              lines.append(f"HTTP status: {resp.status_code}")
+              lines.append("Response body (truncated, first 3000 chars):")
+              lines.append("```")
+              lines.append(resp.text[:3000])
+              lines.append("```")
+          except requests.RequestException as e:
+              lines.append(f"\nEXCEPTION calling GMI model-listing endpoint: {type(e).__name__}: {e}")
+
+          lines.append(
+              "\nActual cost: model-listing calls are expected to be free or near-free, "
+              "consistent with typical OpenAI-compatible API conventions (UNVERIFIED for "
+              "GMI specifically -- check the console). No avatar generation call was made, "
+              "so no per-generation charge (reported ~$0.0667/request) was incurred here."
+          )
+          lines.append(
+              "\nIf this response does not clearly answer whether the avatar model can "
+              "return a downloadable file, that remains UNKNOWN and requires either "
+              "clarified GMI documentation or a separately authorized, explicitly "
+              "budgeted follow-up generation call -- not an automatic escalation of spend."
+          )
+
+          print("\n".join(lines))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("\n".join(lines) + "\n")
+          PYEOF
+
+      - name: Spend cap reminder
+        if: always()
+        run: |
+          {
+            echo "## Spend cap"
+            echo "This workflow is designed to stay well under CF-VERIFY-001's \$5 sub-cap: one voice-clone request (reported ~\$0.10) and one metadata/model-listing call (expected free or near-free). No full avatar-generation render was attempted by this workflow. Verify actual charges in the GMI console after this run and record them, call-by-call, in docs/verification/CF-VERIFY-001.md."
+          } >> "$GITHUB_STEP_SUMMARY"

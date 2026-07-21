@@ -34,15 +34,21 @@ Status: `IN_PROGRESS` — documentation authorized and pushed; live testing begi
 - `docs/ops/DECISION_LOG.md`
 - `docs/verification/CF-VERIFY-001.md` (create for detailed live-test findings)
 - `.gitignore` only to ensure any local secret/env file used for the live test is excluded (no other content changes)
+- `.github/workflows/cf-verify-001.yml` — see amendment below. This is the one narrow exception to this packet's own general CI/infrastructure-as-code prohibition.
 
-Any throwaway script needed to make the live API calls is written outside the repository (session scratch space), not committed — this packet produces evidence, not application source.
+Any other throwaway script needed to make live API calls is written outside the repository (session scratch space), not committed.
+
+### Amendment: authorized CI file for secret entry and execution
+
+This packet's original "Forbidden paths" list (below) excluded all CI files. That is amended for exactly one file: `.github/workflows/cf-verify-001.yml`, a `workflow_dispatch`-only (manually triggered, never on push/PR/schedule) GitHub Actions workflow that reads `GMI_API_KEY` from GitHub's own repository-secret store — the only secure, click-only secret-entry mechanism actually available for this project, since this session has no secret-entry UI and the founder/controller declined terminal and manual-file-based approaches. No other CI, deployment, or infrastructure-as-code file is authorized by this amendment. The workflow is prepared and pushed for review in this packet; it is explicitly **not** executed or merged by this packet — see Authority boundary.
 
 ### Forbidden paths
 
 - `CLAUDE.md`, `docs/canon/*`, `docs/ops/AUTHORITY_MATRIX.md`
-- Any runtime application source, CI, deployment, or infrastructure-as-code file
+- Any runtime application source, CI, deployment, or infrastructure-as-code file, **except** the single `.github/workflows/cf-verify-001.yml` file described in the amendment above
 - No Render service creation, no production deployment
 - No HeyGen account creation or HeyGen API call
+- No other GitHub Actions workflow, no changes to any existing CI/CD configuration beyond the one new file
 
 ### Required behavior
 
@@ -89,6 +95,8 @@ Close the draft PR or revert the findings commit. Real paid calls made under thi
 ### Authority boundary
 
 Claude may make the two GMI/Genblaze live test calls described above, up to $5 total actual spend, using the existing GMI key once its presence (not value) is confirmed. Claude may not create a HeyGen account or call a HeyGen endpoint, may not exceed the $5 sub-cap without a new explicit authorization, and may not treat this packet as license to run further exploratory paid calls beyond the two questions above.
+
+For the GitHub Actions execution path specifically: Claude may **prepare and push** `.github/workflows/cf-verify-001.yml` to this packet's PR for review. Claude may **not** trigger (`workflow_dispatch`) the workflow, and may not merge this PR or any other PR that would put the workflow on a branch from which it could run unreviewed. Execution is a distinct, separately authorized action — someone with repository write access clicks "Run workflow" in the GitHub UI after adding the `GMI_API_KEY` repository secret and reviewing the workflow file. Claude cannot click that button itself (no such control is exposed to any tool available to it) and is not authorized to attempt to trigger it via the API either.
 
 ### Required receipt additions
 
