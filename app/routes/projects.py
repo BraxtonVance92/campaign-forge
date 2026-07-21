@@ -11,7 +11,6 @@ import hashlib
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import ValidationError
 
 from app import repository
 from app.analysis import AnalysisBlockedError, GMIAnalysisClient
@@ -25,6 +24,7 @@ from app.models import (
     SourceAsset,
     new_id,
 )
+from app.security import content_type_matches_signature, sanitize_filename
 from app.storage import StorageBackend, build_storage_backend
 
 router = APIRouter()
@@ -63,6 +63,13 @@ async def upload_source(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found.")
 
+    if _find_existing_source(storage, project_id) is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This project already has an authorized source. CF-RUN-001's "
+            "narrow scope supports exactly one source per project.",
+        )
+
     if not consent_statement.strip():
         raise HTTPException(
             status_code=422, detail="Consent attestation is required before upload."
@@ -84,6 +91,15 @@ async def upload_source(
             detail=f"File exceeds the maximum allowed size of {MAX_UPLOAD_BYTES} bytes.",
         )
 
+    if not content_type_matches_signature(file.content_type, data):
+        raise HTTPException(
+            status_code=422,
+            detail=f"File content does not match a real {file.content_type} "
+            "signature. The declared content type does not match the actual "
+            "file format (checked via magic bytes, not the client-supplied "
+            "header).",
+        )
+
     uses = [u.strip() for u in permitted_uses.split(",") if u.strip()]
     if not uses:
         raise HTTPException(
@@ -97,7 +113,7 @@ async def upload_source(
     repository.save_consent(storage, consent)
 
     checksum = hashlib.sha256(data).hexdigest()
-    filename = file.filename or "upload"
+    filename = sanitize_filename(file.filename or "upload")
     source_id = new_id()
     source = SourceAsset(
         id=source_id,
@@ -137,15 +153,13 @@ def analyze_source(
         )
         repository.save_profile(storage, profile)
     except AnalysisBlockedError as exc:
+        # GMIAnalysisClient.analyze() guarantees every failure mode (missing
+        # credential, unfetchable source, network error, HTTP error,
+        # malformed response, contract validation failure) surfaces as this
+        # one exception type with an already-sanitized message -- no raw
+        # provider body or secret ever reaches this handler.
         blocked = AnalysisBlockedRecord(
             project_id=project_id, source_id=source_id, reason=str(exc)
-        )
-        repository.save_blocked_record(storage, blocked)
-    except ValidationError as exc:
-        blocked = AnalysisBlockedRecord(
-            project_id=project_id,
-            source_id=source_id,
-            reason=f"Analysis response failed contract validation: {exc}",
         )
         repository.save_blocked_record(storage, blocked)
 
@@ -180,14 +194,12 @@ def view_project(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found.")
 
-    # This narrow slice supports exactly one source per project; look it up
-    # by scanning the one expected metadata key pattern via a source_id the
-    # upload step would have produced. For simplicity we store the most
-    # recent source id on the project object itself.
+    # Upload enforces exactly one source per project (see upload_source),
+    # so there is at most one to find -- no "latest" ambiguity to resolve.
     source = None
     result = None
     if project.id:
-        source = _find_latest_source(storage, project_id)
+        source = _find_existing_source(storage, project_id)
         if source is not None:
             result = repository.get_analysis_result(storage, project_id, source.id)
 
@@ -203,11 +215,11 @@ def view_project(
     )
 
 
-def _find_latest_source(storage: StorageBackend, project_id: str) -> SourceAsset | None:
+def _find_existing_source(storage: StorageBackend, project_id: str) -> SourceAsset | None:
     # Uses the generic StorageBackend.list_keys(), so this works identically
     # across B2, local-disk-fallback, and the in-memory test backend -- not
-    # a backend-specific hack. Kept to "find the one source" since this
-    # narrow slice supports exactly one source per project.
+    # a backend-specific hack. Upload enforces at most one source per
+    # project, so there is never an ordering/"latest" question here.
     prefix = f"projects/{project_id}/sources/"
     metadata_keys = sorted(k for k in storage.list_keys(prefix) if k.endswith("/metadata.json"))
     if not metadata_keys:

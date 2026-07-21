@@ -75,8 +75,13 @@ class B2Storage:
             return False
 
     def list_keys(self, prefix: str) -> list[str]:
-        resp = self._client.list_objects_v2(Bucket=self._bucket, Prefix=prefix)
-        return [obj["Key"] for obj in resp.get("Contents", [])]
+        # list_objects_v2 caps a single page at 1000 keys; paginate rather
+        # than silently truncating results at that boundary.
+        paginator = self._client.get_paginator("list_objects_v2")
+        keys: list[str] = []
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+            keys.extend(obj["Key"] for obj in page.get("Contents", []))
+        return keys
 
 
 class LocalDiskStorage:
@@ -91,11 +96,17 @@ class LocalDiskStorage:
     name = "local-disk-fallback"
 
     def __init__(self, root: str | None = None):
-        self._root = Path(root or os.environ.get("LOCAL_STORAGE_ROOT", "./.local_storage"))
+        self._root = Path(root or os.environ.get("LOCAL_STORAGE_ROOT", "./.local_storage")).resolve()
         self._root.mkdir(parents=True, exist_ok=True)
 
     def _path_for(self, key: str) -> Path:
-        path = self._root / key
+        # Defense in depth: sanitize_filename() at the upload boundary
+        # (app/routes/projects.py) is the primary fix for path traversal,
+        # but every key is re-checked here too, since this method is the
+        # single place where a key becomes a real filesystem path.
+        path = (self._root / key).resolve()
+        if path != self._root and self._root not in path.parents:
+            raise ValueError(f"Refusing to write outside storage root for key: {key!r}")
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 

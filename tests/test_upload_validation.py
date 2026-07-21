@@ -99,6 +99,69 @@ def test_upload_rejects_empty_file(client):
     assert "empty" in resp.json()["detail"]
 
 
+def test_upload_rejects_content_type_mismatched_with_real_file_signature(client):
+    """The client can claim video/mp4 in the multipart header, but the real
+    bytes are checked against the actual MP4 ftyp signature -- not just
+    trusted from the user-controlled Content-Type."""
+    project_id = create_project(client)
+    resp = client.post(
+        f"/projects/{project_id}/sources",
+        data={
+            "consent_statement": "I authorize analysis of this footage.",
+            "permitted_uses": "analysis",
+        },
+        files={"file": ("clip.mp4", b"NOT ACTUALLY A VIDEO FILE" * 10, "video/mp4")},
+    )
+    assert resp.status_code == 422
+    assert "does not match a real" in resp.json()["detail"]
+
+
+def test_upload_sanitizes_path_traversal_in_filename(client):
+    """A malicious filename must never escape the intended storage
+    location or appear unsanitized in persisted metadata."""
+    project_id = create_project(client)
+    resp = client.post(
+        f"/projects/{project_id}/sources",
+        data={
+            "consent_statement": "I authorize analysis of this footage.",
+            "permitted_uses": "analysis",
+        },
+        files={"file": ("../../../etc/passwd", make_fake_mp4_bytes(), "video/mp4")},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    view = client.get(f"/projects/{project_id}")
+    assert "../" not in view.text
+    assert ">passwd<" in view.text  # sanitized to a safe basename, no traversal
+
+
+def test_upload_rejects_second_source_for_same_project(client):
+    """CF-RUN-001's scope is exactly one source per project."""
+    project_id = create_project(client)
+    first = client.post(
+        f"/projects/{project_id}/sources",
+        data={
+            "consent_statement": "I authorize analysis of this footage.",
+            "permitted_uses": "analysis",
+        },
+        files={"file": ("clip.mp4", make_fake_mp4_bytes(), "video/mp4")},
+        follow_redirects=False,
+    )
+    assert first.status_code == 303
+
+    second = client.post(
+        f"/projects/{project_id}/sources",
+        data={
+            "consent_statement": "I authorize analysis of this second clip too.",
+            "permitted_uses": "analysis",
+        },
+        files={"file": ("clip2.mp4", make_fake_mp4_bytes(), "video/mp4")},
+    )
+    assert second.status_code == 409
+    assert "already has an authorized source" in second.json()["detail"]
+
+
 def test_upload_to_nonexistent_project_returns_404(client):
     resp = client.post(
         "/projects/does-not-exist/sources",

@@ -125,3 +125,158 @@ def test_analyze_success_path_with_mocked_gmi_response(monkeypatch):
     )
     assert profile.audience == VALID_FIXTURE["audience"]
     assert profile.source_asset_hash == "deadbeef"
+
+
+def _client_with_key():
+    settings = Settings(
+        gmi_api_key="test-key-not-real", b2_key_id=None, b2_application_key=None,
+        b2_bucket_name=None, b2_endpoint=None,
+    )
+    return GMIAnalysisClient(settings)
+
+
+def test_analyze_blocked_on_http_error_status(monkeypatch):
+    """A GMI 5xx/4xx must become an honest AnalysisBlockedError, never an
+    unhandled exception -- and must never include the raw response body."""
+    import httpx
+
+    class FakeErrorResponse:
+        status_code = 503
+
+        def raise_for_status(self):
+            raise httpx.HTTPStatusError(
+                "Service Unavailable", request=None, response=self
+            )
+
+        def json(self):
+            raise AssertionError("json() should not be called after raise_for_status fails")
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return FakeErrorResponse()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    with pytest.raises(AnalysisBlockedError, match="HTTP 503") as exc_info:
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+    assert "secret_super_sensitive_body_content" not in str(exc_info.value)
+
+
+def test_analyze_blocked_on_network_error(monkeypatch):
+    """A connection failure must become an honest AnalysisBlockedError, not
+    an unhandled httpx.RequestError propagating as a 500."""
+    import httpx
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    with pytest.raises(AnalysisBlockedError, match="Network error contacting GMI"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_blocked_on_malformed_json_content(monkeypatch):
+    """If GMI's message content isn't valid JSON, block honestly instead of
+    letting json.JSONDecodeError propagate unhandled."""
+    import httpx
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "not valid json {{{"}}]}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(AnalysisBlockedError, match="not in the expected shape"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_blocked_on_missing_choices_key(monkeypatch):
+    """A response shape without the expected 'choices' key must block
+    honestly instead of raising an unhandled KeyError."""
+    import httpx
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"unexpected": "shape"}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(AnalysisBlockedError, match="not in the expected shape"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_blocked_on_contract_validation_failure(monkeypatch):
+    """A syntactically valid JSON response that fails a real pydantic
+    constraint (confidence out of the documented 0-1 range) must block
+    honestly instead of raising an unhandled ValidationError. This is
+    distinct from a missing directly-indexed key, which raises KeyError
+    -- see test_analyze_blocked_on_missing_required_field below."""
+    import httpx
+
+    broken_fixture = dict(VALID_FIXTURE, confidence=5.0)
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": __import__("json").dumps(broken_fixture)}}]}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(AnalysisBlockedError, match="failed contract validation"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_blocked_on_missing_required_field(monkeypatch):
+    """A response missing a directly-indexed required field (e.g.
+    'audience') raises KeyError inside parse_creator_profile, not
+    pydantic.ValidationError -- analyze() must catch this too, not just
+    ValidationError, or it escapes as an unhandled 500. Found by this
+    test during review; app/analysis.py's except clause was widened to
+    (ValidationError, KeyError, TypeError) as a result."""
+    import httpx
+
+    broken_fixture = {k: v for k, v in VALID_FIXTURE.items() if k != "audience"}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": __import__("json").dumps(broken_fixture)}}]}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(AnalysisBlockedError, match="missing a required field"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
