@@ -17,21 +17,26 @@ name: CF-VERIFY-001 GMI Live Test
 # host is not exactly console.gmicloud.ai, as defense in depth against a
 # future accidental edit reintroducing a variable endpoint.
 #
-# COST: two fixed, hardcoded calls, no user-editable text/duration/repeat
-# count, documented below with a conservative worst-case ceiling under $5:
-#   - Voice clone (minimax-audio-voice-clone-speech-2.6-hd): GMI's own blog
-#     does not price this model and no official static page prices it
-#     either -- a search-engine synthesis reported ~$0.10/request, but that
-#     is REPORTED, not independently verified on a quotable official page.
-#     Budgeted conservatively at a $1.00 worst-case ceiling for this
-#     calculation (10x the reported figure) as a safety margin.
-#   - Avatar (heygen-avatar-4): VERIFIED official price, quoted identically
-#     on both the gmicloud.ai blog and the docs.gmicloud.ai quickstart page:
-#     $0.0667/sec. The hardcoded test phrase is a few words (~1-2s of
-#     speech), budgeted at a $0.20 worst-case ceiling.
-#   Documented combined worst-case ceiling: $1.20, well under the $5
-#   CF-VERIFY-001 sub-cap. If either response includes real cost/usage
-#   data, it is logged as actual, separate from this estimate.
+# COST: exactly one voice-clone request and one avatar request, no retries
+# of the paid action itself (the bounded status-polling loop below only
+# re-checks the status of the SAME request_id already submitted -- it does
+# not resubmit or repeat the paid call), no user-editable text/duration.
+#
+# The real spending boundary is the GMI account's prepaid credit balance,
+# capped at a $20 maximum -- not a soft in-code reminder. GMI's own public
+# sources disagree on the avatar model's billing basis (the gmicloud.ai
+# blog says "$0.0667 per request"; the docs.gmicloud.ai quickstart page for
+# the same model says "$0.0667/sec"), and the voice-clone model's price is
+# not published on any official static page at all (only an unverified
+# ~$0.10/request search-engine synthesis exists). Rather than resolve that
+# ambiguity with a precise but potentially wrong in-code dollar ceiling,
+# the account is funded with at most $20 in prepaid credit -- neither call
+# can ever draw more than that regardless of which pricing interpretation
+# turns out to be correct, because there is no more money in the account.
+# If GMI requires more than $20 to fund the account at all (e.g. a higher
+# minimum top-up), that is a blocker to report, not a reason to fund more
+# than $20 without further authorization. If either response includes real
+# cost/usage data, it is logged as actual, separate from any estimate.
 #
 # SECRET HYGIENE: the workflow never prints the raw response body. Only an
 # explicit allowlist of fields is extracted and logged: request_id, model,
@@ -64,7 +69,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type RUN to confirm you accept this run''s cost, documented below at a $1.20 worst-case ceiling, well under the $5 CF-VERIFY-001 cap'
+        description: 'Type RUN to confirm you accept this run''s cost. The real spending boundary is a $20 maximum prepaid GMI credit balance, not an in-code number -- see header comment.'
         required: true
         default: ''
       run_voice_test:
@@ -272,10 +277,11 @@ jobs:
           lines.append(json.dumps(sanitized, indent=2))
           lines.append("```")
           lines.append(
-              "\nActual cost: not returned in this response. Documented worst-case ceiling "
-              "for this call was $1.00 (REPORTED estimate ~$0.10/request, not independently "
-              "verified on an official static page). Verify the real charge in the GMI "
-              "console and record it in docs/verification/CF-VERIFY-001.md."
+              "\nActual cost: not returned in this response (REPORTED estimate ~$0.10/request, "
+              "not independently verified on an official static page). The real spending "
+              "boundary for this call is the $20 maximum prepaid GMI account balance, not an "
+              "in-code estimate. Verify the real charge in the GMI console and record it in "
+              "docs/verification/CF-VERIFY-001.md."
           )
 
           print("\n".join(lines))
@@ -343,14 +349,17 @@ jobs:
 
           # avatar_id and voice_id below are GMI's own documented example values
           # (docs.gmicloud.ai/model-quickstarts/video/heygen-avatar-4.md), not
-          # independently confirmed valid for this account. A short, fixed,
-          # hardcoded phrase keeps duration -- and therefore cost -- bounded.
+          # independently confirmed valid for this account. input_text is the
+          # shortest sensible phrase (a two-character greeting) to minimize
+          # generated duration -- and therefore cost -- regardless of which
+          # of GMI's two conflicting billing-basis statements (flat per-request
+          # vs. per-second) turns out to be correct.
           payload = {
               "model": "heygen-avatar-4",
               "payload": {
                   "avatar_id": "Abigail_expressive_2024112501",
                   "avatar_style": "normal",
-                  "input_text": "Hi there.",
+                  "input_text": "Hi.",
                   "voice_id": "2d5b0e6cf36f460aa7fc47e3eee4ba54",
                   "speed": 1.0,
               },
@@ -415,9 +424,13 @@ jobs:
               "sanitized fields still capture status and request_id for follow-up."
           )
           lines.append(
-              "\nActual cost: not returned in this response. Documented worst-case ceiling "
-              "for this call was $0.20 (VERIFIED official rate $0.0667/sec for a ~1-2s "
-              "phrase). Verify the real charge in the GMI console and record it in "
+              "\nActual cost: not returned in this response. GMI's own published sources "
+              "disagree on this model's billing basis (flat per-request per the gmicloud.ai "
+              "blog vs. per-second per the docs.gmicloud.ai quickstart page for this exact "
+              "model) -- input_text was kept to the shortest sensible phrase precisely "
+              "because of that unresolved discrepancy. The real spending boundary for this "
+              "call is the $20 maximum prepaid GMI account balance, not an in-code estimate. "
+              "Verify the real charge in the GMI console and record it in "
               "docs/verification/CF-VERIFY-001.md."
           )
 
@@ -426,10 +439,10 @@ jobs:
               f.write("\n".join(lines) + "\n")
           PYEOF
 
-      - name: Documented cost ceiling
+      - name: Documented spending boundary
         if: always()
         run: |
           {
-            echo "## Documented, fixed-call cost ceiling"
-            echo "Both calls use hardcoded payloads with no user-editable text, duration, or repeat count. Worst-case combined ceiling: \$1.00 (voice clone, REPORTED ~\$0.10/request, not independently verified) + \$0.20 (avatar, VERIFIED \$0.0667/sec for ~1-2s) = **\$1.20**, well under the \$5 CF-VERIFY-001 sub-cap. Verify actual charges in the GMI console after this run and record them, call-by-call, in docs/verification/CF-VERIFY-001.md."
+            echo "## The real spending boundary"
+            echo "Both calls are single, fixed, hardcoded requests -- no retries of the paid action (status polling only re-checks the same request_id, it never resubmits), no user-editable text, duration, or destination. The actual spending boundary is the GMI account's prepaid credit balance, capped at a documented **\$20 maximum** -- not an in-code dollar ceiling. Neither call can draw more than what is actually funded in the account, regardless of GMI's own conflicting published pricing statements for the avatar model (flat per-request vs. per-second) or the unverified voice-clone price. Verify actual charges in the GMI console after this run and record them, call-by-call, in docs/verification/CF-VERIFY-001.md."
           } >> "$GITHUB_STEP_SUMMARY"
