@@ -2,6 +2,8 @@
 
 Date: 2026-07-21. Contest deadline: 2026-08-03 17:00 ET. Corrected 2026-07-21 to reflect the founder's binding product correction (`docs/ops/DECISION_LOG.md` D-010, D-011): authorized face-and-voice video generation is core product scope, not deferred.
 
+**Superseded for near-term sequencing** (2026-07-21, D-023): `docs/roadmap/CAMPAIGNFORGE_EXECUTION_LEDGER.md` is now the controlling execution plan for what to build next and in what order (its `CF-00` through `CF-22` blocks). That ledger prioritizes accuracy validation on the founder's dad's authorized content over the contest-phase sequencing below, and does not reference the contest deadline. This phase plan is kept as historical context and for contest-submission requirements (cut line, scoring strategy) if the contest track is still pursued in parallel — that relationship was not resolved by the founder in the same message that issued the ledger and should be confirmed, not assumed, before contest-specific work (Phases 3-5 below) is prioritized over the ledger's CF-blocks.
+
 ## Priority rule
 
 Protect a complete, testable, truthful phase before moving to the next. Each phase must end in durable evidence. Schedule pressure may narrow scope (for example, one authorized creator instead of many) but may not silently remove face or voice generation.

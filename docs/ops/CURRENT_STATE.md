@@ -73,11 +73,13 @@ Unknown/zero. No paid provider call has been made in this repository's history. 
 No Render or other hosted deployment exists yet, so the only place these currently need to go is this repository's local `.env` file (already `.gitignore`d — never commit it):
 
 1. In the repo root, copy `.env.example` to `.env` if you have not already (`cp .env.example .env`).
-2. Set `GMI_API_KEY=` to your real GMI Cloud API key.
-3. Set all four B2 variables together — `B2_KEY_ID=`, `B2_APPLICATION_KEY=`, `B2_BUCKET_NAME=`, `B2_ENDPOINT=` — from your Backblaze B2 bucket's Application Key page. **Both credential sets are required together for a genuinely live analysis**, not just `GMI_API_KEY` alone: without B2, uploads fall back to local-disk storage, which cannot produce a real `https://` URL GMI's servers can fetch, so analysis will still honestly report itself blocked even with a valid GMI key.
+2. Set `GMI_API_KEY=` to your real GMI Cloud API key. **This alone may be enough for the very first small test** — see the correction below; B2 is the current code's requirement, not a confirmed GMI requirement.
+3. Set all four B2 variables together — `B2_KEY_ID=`, `B2_APPLICATION_KEY=`, `B2_BUCKET_NAME=`, `B2_ENDPOINT=` — from your Backblaze B2 bucket's Application Key page, if/when you want durable, restorable storage (Product Canon's long-term requirement regardless of this experiment).
 4. Restart the server so it re-reads the environment: `uvicorn app.main:app --reload`.
-5. Confirm both are recognized: open `http://127.0.0.1:8000/health` — it must show `"gmi_configured": true` and `"b2_configured": true`. Neither value is a real live-call test by itself, only a presence check.
-6. Confirm a real analysis actually runs: create a project, upload one authorized creator video, click "Run creator analysis." A rendered creator profile (not the "Analysis blocked" card) confirms the real call succeeded. Only at that point should `app.analysis.REQUEST_SHAPE_VERIFIED` be flipped to `True` (D-022) — never speculatively.
+5. Confirm what's recognized: open `http://127.0.0.1:8000/health` — `"gmi_configured": true` confirms the key is read; `"b2_configured": true` confirms B2 is read. Neither is a live-call test by itself, only a presence check.
+6. Confirm a real analysis actually runs: create a project, upload one authorized creator video, click "Run creator analysis." A rendered creator profile (not the "Analysis blocked" card) confirms the real call succeeded. Only at that point should `app.analysis.REQUEST_SHAPE_VERIFIED` be flipped to `True` (D-022/D-023) — never speculatively.
+
+**Correction (2026-07-21, `CF-01` research, `docs/ops/ACTIVE_WORK_PACKET.md`):** the *current code* requires both credential sets together, because `GMIAnalysisClient.analyze()` only accepts a `https://` `video_url` and local-disk-fallback storage can't produce one. But it is **unverified, not confirmed impossible**, that GMI's `nemotron-3-nano-omni` endpoint could accept a small video directly as a base64 data URI instead of a hosted URL — a pattern documented for a *different* GMI model family (video generation), not this one, so it is not assumed to work here without a live test. If you only have `GMI_API_KEY` and want to try the smallest possible experiment before setting up B2, say so — CF-02's live test is designed to try base64 first specifically because it needs no B2 setup, and only falls back to a hosted URL if that fails.
 
 ## Next safe action
 
