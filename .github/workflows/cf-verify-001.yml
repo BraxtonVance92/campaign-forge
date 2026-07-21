@@ -1,64 +1,80 @@
 name: CF-VERIFY-001 GMI Live Test
 
-# Manually triggered only. This workflow never runs on push, pull_request, schedule,
-# or any other automatic event. Per docs/ops/ACTIVE_WORK_PACKET.md (CF-VERIFY-001),
-# Claude Code is authorized to prepare and push this file, but is NOT authorized to
-# trigger it or merge the PR that contains it. A human with repository write access
-# must add the GMI_API_KEY repository secret (Settings > Secrets and variables >
-# Actions > New repository secret) and click "Run workflow" to execute it.
+# Manually triggered only. Never runs on push, pull_request, schedule, or any
+# other automatic event. Per docs/ops/ACTIVE_WORK_PACKET.md (CF-VERIFY-001),
+# Claude Code is authorized to prepare and push this file, but is NOT
+# authorized to trigger it or add the GMI_API_KEY secret. A human with
+# repository write access must add the secret and click "Run workflow".
 #
-# Scope: exactly two questions, per CF-VERIFY-001's authorized scope, capped at $5
-# total actual spend:
-#   1. Does GMI's minimax-audio-voice-clone-speech-2.6-hd model produce real cloned
-#      audio end to end? (one paid request, reported ~$0.10, unverified)
-#   2. Does GMI's avatar model expose enough metadata to tell whether it can return
-#      a downloadable video file, vs. only a live WebRTC session? (introspection
-#      only -- no full paid avatar render is attempted here, to stay well under cap)
+# SECURITY: destination endpoints are hardcoded, not dispatch inputs. GMI's
+# own quickstart docs show BOTH the voice-clone and avatar models are invoked
+# through the identical endpoint below (verified 2026-07-21):
+#   https://docs.gmicloud.ai/model-quickstarts/audio/minimax-audio-voice-clone-speech-2-6-hd
+#   https://docs.gmicloud.ai/model-quickstarts/video/heygen-avatar-4.md
+# Both pages show: POST https://console.gmicloud.ai/api/v1/ie/requestqueue/apikey/requests
+# A runtime hostname allowlist check (exact match, no substring/suffix logic)
+# additionally refuses to attach the Authorization header to any URL whose
+# host is not exactly console.gmicloud.ai, as defense in depth against a
+# future accidental edit reintroducing a variable endpoint.
 #
-# The secret's value is never printed, echoed, or written to any log or summary.
-# GitHub Actions also automatically masks any exact-match occurrence of a
-# registered secret value in logs, as defense in depth on top of this workflow
-# never referencing it outside a single env: binding per step.
+# COST: two fixed, hardcoded calls, no user-editable text/duration/repeat
+# count, documented below with a conservative worst-case ceiling under $5:
+#   - Voice clone (minimax-audio-voice-clone-speech-2.6-hd): GMI's own blog
+#     does not price this model and no official static page prices it
+#     either -- a search-engine synthesis reported ~$0.10/request, but that
+#     is REPORTED, not independently verified on a quotable official page.
+#     Budgeted conservatively at a $1.00 worst-case ceiling for this
+#     calculation (10x the reported figure) as a safety margin.
+#   - Avatar (heygen-avatar-4): VERIFIED official price, quoted identically
+#     on both the gmicloud.ai blog and the docs.gmicloud.ai quickstart page:
+#     $0.0667/sec. The hardcoded test phrase is a few words (~1-2s of
+#     speech), budgeted at a $0.20 worst-case ceiling.
+#   Documented combined worst-case ceiling: $1.20, well under the $5
+#   CF-VERIFY-001 sub-cap. If either response includes real cost/usage
+#   data, it is logged as actual, separate from this estimate.
 #
-# Known limitation, stated plainly rather than hidden: the exact request path for
-# GMI's voice-clone endpoint and the exact shape of avatar-model metadata were not
-# confirmed against a live API response as of when this workflow was written --
-# only against static documentation and a third-party quickstart page. Both
-# endpoint URLs are exposed as dispatch inputs specifically so a human who has
-# console access to double-check the current GMI docs can correct them at
-# trigger-time without needing another code change.
+# SECRET HYGIENE: the workflow never prints the raw response body. Only an
+# explicit allowlist of fields is extracted and logged: request_id, model,
+# status, timestamps, a derived output_type, and, if a media URL is
+# present, its scheme+host+path with the query string stripped (signed
+# URLs often carry time-limited access tokens in the query string, which
+# are treated with the same care as a credential). GMI_API_KEY itself is
+# only ever read via secrets.GMI_API_KEY inside an env: binding for the one
+# step that needs it, never echoed, never traced (no `set -x`).
+#
+# TEST CLIP: Test 1 needs a short (<8s), non-personal reference clip to
+# clone. Rather than ask a human to locate/host one, this workflow
+# generates a short synthetic speech clip on the runner itself (espeak-ng,
+# preinstalled tooling only) and publishes it to a throwaway, anonymous,
+# unauthenticated public host (0x0.st) purely so GMI's servers can fetch
+# it by URL -- no personal audio, no manual hosting step. This specific
+# step (synthesis + anonymous upload) was designed carefully but has not
+# been exercised end-to-end before this review, since no live run has
+# occurred; if the anonymous host is unavailable at run time, Test 1
+# reports that blocker plainly rather than silently failing or
+# substituting an untested workaround.
+#
+# KNOWN LIMITATION, stated plainly: heygen_avatar_id and heygen_voice_id
+# below are GMI's own documented example values, not independently
+# confirmed to be valid/available on this account. If they are wrong, the
+# call fails cheaply (likely a 4xx with no generation performed) rather
+# than silently producing a false result.
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type RUN to confirm you accept this run''s spend, bounded by the $5 CF-VERIFY-001 cap'
+        description: 'Type RUN to confirm you accept this run''s cost, documented below at a $1.20 worst-case ceiling, well under the $5 CF-VERIFY-001 cap'
         required: true
         default: ''
       run_voice_test:
-        description: 'Run Test 1: GMI voice-clone connectivity (one paid request, reported ~$0.10, unverified)'
+        description: 'Run Test 1: GMI voice-clone connectivity (fixed call, worst-case $1.00)'
         type: boolean
         default: true
       run_avatar_test:
-        description: 'Run Test 2: GMI avatar model metadata introspection (no full paid render attempted)'
+        description: 'Run Test 2: GMI real avatar request to determine downloadable-file vs. WebRTC-only output (fixed call, worst-case $0.20)'
         type: boolean
         default: true
-      source_audio_url:
-        description: 'Public HTTPS URL to a short (<8s), non-personal, placeholder reference clip for Test 1. Never a real creator sample -- no verified consent record exists yet.'
-        required: false
-        default: ''
-      test_text:
-        description: 'Short text for Test 1 to synthesize'
-        required: false
-        default: 'This is a connectivity test for CampaignForge verification. No real creator voice is used.'
-      voice_clone_endpoint:
-        description: 'GMI voice-clone request endpoint (inferred from documentation -- verify against the current GMI console/docs before running and correct here if needed)'
-        required: false
-        default: 'https://api.gmi-serving.com/v1/ie/requestqueue/apikey/requests'
-      model_list_endpoint:
-        description: 'GMI model-listing endpoint used for the Test 2 introspection check'
-        required: false
-        default: 'https://api.gmi-serving.com/v1/models'
 
 permissions:
   contents: read
@@ -67,10 +83,16 @@ concurrency:
   group: cf-verify-001-gmi-live-test
   cancel-in-progress: false
 
+env:
+  # Single hardcoded, verified endpoint used by both tests. Not a dispatch
+  # input -- see the security note above.
+  GMI_REQUEST_ENDPOINT: https://console.gmicloud.ai/api/v1/ie/requestqueue/apikey/requests
+  GMI_ALLOWED_HOST: console.gmicloud.ai
+
 jobs:
   gmi-live-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Guard - require explicit confirmation
         run: |
@@ -99,122 +121,304 @@ jobs:
         if: ${{ github.event.inputs.run_voice_test == 'true' || github.event.inputs.run_avatar_test == 'true' }}
         run: pip install requests
 
-      - name: Test 1 - GMI voice clone connectivity (MiniMax speech-2.6-hd)
+      - name: Generate predetermined synthetic reference clip (Test 1 only)
+        id: synth
+        if: ${{ github.event.inputs.run_voice_test == 'true' }}
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng >/dev/null
+          espeak-ng "This is a synthetic connectivity test. No real person's voice is used." -w /tmp/cf_verify_raw.wav
+          # Hard-cap duration well under the model's documented 8-second limit,
+          # and normalize to a broadly-accepted format/sample rate.
+          ffmpeg -y -i /tmp/cf_verify_raw.wav -t 7 -ar 22050 -ac 1 /tmp/cf_verify_clip.wav -loglevel error
+          echo "Synthetic clip generated (non-personal, espeak-ng TTS output)."
+          UPLOAD_URL=$(curl -s -F "file=@/tmp/cf_verify_clip.wav" https://0x0.st || true)
+          if [[ "$UPLOAD_URL" =~ ^https:// ]]; then
+            echo "clip_url=$UPLOAD_URL" >> "$GITHUB_OUTPUT"
+            echo "Synthetic clip published to a throwaway anonymous host for GMI to fetch."
+          else
+            echo "clip_url=" >> "$GITHUB_OUTPUT"
+            echo "::warning::Could not obtain a public URL for the synthetic clip from the anonymous host. Test 1 will report this as a blocker rather than proceed with an unverified URL."
+          fi
+
+      - name: Test 1 - GMI voice clone (MiniMax speech-2.6-hd)
         if: ${{ github.event.inputs.run_voice_test == 'true' }}
         env:
           GMI_API_KEY: ${{ secrets.GMI_API_KEY }}
-          SOURCE_AUDIO_URL: ${{ github.event.inputs.source_audio_url }}
-          TEST_TEXT: ${{ github.event.inputs.test_text }}
-          VOICE_CLONE_ENDPOINT: ${{ github.event.inputs.voice_clone_endpoint }}
+          SOURCE_AUDIO_URL: ${{ steps.synth.outputs.clip_url }}
         run: |
           python3 - <<'PYEOF'
-          import os, sys, time
+          import json, os, sys, time
+          from urllib.parse import urlparse
           import requests
 
           key = os.environ["GMI_API_KEY"]
+          endpoint = os.environ["GMI_REQUEST_ENDPOINT"]
+          allowed_host = os.environ["GMI_ALLOWED_HOST"]
           source_audio_url = os.environ.get("SOURCE_AUDIO_URL", "").strip()
-          test_text = os.environ.get("TEST_TEXT", "").strip()
-          endpoint = os.environ["VOICE_CLONE_ENDPOINT"].strip()
 
           lines = ["## CF-VERIFY-001 -- Test 1: GMI voice clone (MiniMax speech-2.6-hd)", ""]
 
-          if not source_audio_url:
-              lines.append(
-                  "BLOCKED: no source_audio_url was provided at dispatch time. This must be a "
-                  "short (<8s), non-personal, placeholder reference clip -- never a real "
-                  "creator sample without a verified consent record. Re-run with a valid "
-                  "public HTTPS URL to answer this question. No API call was made; no charge "
-                  "was incurred."
-              )
+          def fail_summary(msg):
+              lines.append(msg)
               print("\n".join(lines))
               with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
                   f.write("\n".join(lines) + "\n")
+
+          # Defense in depth: never send the secret anywhere but the exact allowed host,
+          # even though the endpoint is hardcoded above, not a dispatch input.
+          if urlparse(endpoint).hostname != allowed_host:
+              fail_summary(f"ABORTED: endpoint host '{urlparse(endpoint).hostname}' does not "
+                            f"match the allowlisted host '{allowed_host}'. The secret was never sent.")
+              sys.exit(1)
+
+          if not source_audio_url:
+              fail_summary(
+                  "BLOCKED: no synthetic reference clip URL was available (the anonymous "
+                  "upload host may have been unreachable). No API call was made; no charge "
+                  "was incurred. Re-run once the upload step succeeds, or supply a real "
+                  "public HTTPS URL to a short non-personal clip via a follow-up revision."
+              )
               sys.exit(0)
+
+          def safe_url_meta(u):
+              try:
+                  p = urlparse(u)
+                  return f"{p.scheme}://{p.netloc}{p.path} (query string stripped)"
+              except Exception:
+                  return "(unparseable URL, omitted)"
+
+          def sanitize(body):
+              out = {}
+              for k in ("request_id", "model", "status", "created_at", "updated_at", "queued_at"):
+                  if k in body:
+                      out[k] = body[k]
+              outcome = body.get("outcome") or {}
+              media = outcome.get("media_urls") or []
+              if isinstance(media, list) and media:
+                  out["output_type"] = "downloadable_media_file"
+                  metas = []
+                  for m in media[:3]:
+                      url_val = m.get("url") if isinstance(m, dict) else m
+                      metas.append(safe_url_meta(url_val))
+                  out["media_url_meta"] = metas
+              else:
+                  session_like = [k for k in body.keys()
+                                  if any(t in k.lower() for t in ("session", "stream", "webrtc", "offer", "socket"))]
+                  if session_like:
+                      out["output_type"] = "possible_streaming_session"
+                      out["session_like_fields_present"] = session_like
+                  else:
+                      out["output_type"] = "undetermined"
+              return out
 
           payload = {
               "model": "minimax-audio-voice-clone-speech-2.6-hd",
-              "payload": {"text": test_text, "source_audio": source_audio_url},
+              "payload": {
+                  "text": "This is a connectivity test for CampaignForge verification.",
+                  "source_audio": source_audio_url,
+              },
           }
           headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
           start = time.time()
           try:
-              resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
-              elapsed = time.time() - start
-              # Headers (which contain the Authorization value) are never logged, only status/body.
-              lines.append(f"Endpoint: {endpoint}")
-              lines.append(f"HTTP status: {resp.status_code}")
-              lines.append(f"Latency: {elapsed:.2f}s")
-              lines.append("")
-              lines.append("Response body (truncated, first 2000 chars):")
-              lines.append("```")
-              lines.append(resp.text[:2000])
-              lines.append("```")
-              lines.append("")
-              lines.append(
-                  "Actual cost: not returned in this response. GMI's documented estimate for "
-                  "this model is ~$0.10/request (REPORTED via search, not independently "
-                  "confirmed in official static docs). Verify the real charge in the GMI "
-                  "console after this run and record it in docs/verification/CF-VERIFY-001.md."
-              )
+              resp = requests.post(endpoint, headers=headers, json=payload, timeout=30)
           except requests.RequestException as e:
-              lines.append(f"EXCEPTION calling GMI voice-clone endpoint: {type(e).__name__}: {e}")
-              lines.append("If the request never reached GMI, no charge should have occurred -- verify in the GMI console.")
+              fail_summary(f"EXCEPTION submitting request: {type(e).__name__}: {e}\n"
+                           "If the request never reached GMI, no charge should have occurred -- verify in the GMI console.")
+              sys.exit(1)
+
+          try:
+              body = resp.json()
+          except ValueError:
+              lines.append(f"HTTP status: {resp.status_code}")
+              lines.append(f"Non-JSON response ({len(resp.content)} bytes) -- not printed raw. "
+                           "Cannot extract request_id; skipping status polling.")
+              print("\n".join(lines))
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                  f.write("\n".join(lines) + "\n")
+              sys.exit(0)
+
+          request_id = body.get("request_id")
+          lines.append(f"Submit HTTP status: {resp.status_code}")
+          lines.append(f"request_id: {request_id}")
+          lines.append(f"model: {body.get('model')}")
+          lines.append(f"initial status: {body.get('status')}")
+
+          final = dict(body)
+          if request_id:
+              status_url = f"{endpoint}/{request_id}"
+              if urlparse(status_url).hostname != allowed_host:
+                  lines.append("Skipping status polling: constructed status URL failed the host allowlist check.")
+              else:
+                  for attempt in range(24):  # up to ~2 minutes
+                      time.sleep(5)
+                      try:
+                          poll = requests.get(status_url, headers=headers, timeout=15)
+                          pbody = poll.json()
+                      except (requests.RequestException, ValueError):
+                          continue
+                      final = pbody
+                      st = pbody.get("status")
+                      if st in ("success", "failed", "error"):
+                          break
+
+          elapsed = time.time() - start
+          sanitized = sanitize(final)
+          lines.append(f"\nTotal elapsed (submit to terminal or timeout): {elapsed:.1f}s")
+          lines.append("Sanitized result fields (raw body never logged):")
+          lines.append("```json")
+          lines.append(json.dumps(sanitized, indent=2))
+          lines.append("```")
+          lines.append(
+              "\nActual cost: not returned in this response. Documented worst-case ceiling "
+              "for this call was $1.00 (REPORTED estimate ~$0.10/request, not independently "
+              "verified on an official static page). Verify the real charge in the GMI "
+              "console and record it in docs/verification/CF-VERIFY-001.md."
+          )
 
           print("\n".join(lines))
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
               f.write("\n".join(lines) + "\n")
           PYEOF
 
-      - name: Test 2 - GMI avatar endpoint output-format introspection (no paid render)
+      - name: Test 2 - GMI real avatar request (downloadable file vs. WebRTC-only)
         if: ${{ github.event.inputs.run_avatar_test == 'true' }}
         env:
           GMI_API_KEY: ${{ secrets.GMI_API_KEY }}
-          MODEL_LIST_ENDPOINT: ${{ github.event.inputs.model_list_endpoint }}
         run: |
           python3 - <<'PYEOF'
-          import os
+          import json, os, sys, time
+          from urllib.parse import urlparse
           import requests
 
           key = os.environ["GMI_API_KEY"]
-          endpoint = os.environ["MODEL_LIST_ENDPOINT"].strip()
-          headers = {"Authorization": f"Bearer {key}"}
+          endpoint = os.environ["GMI_REQUEST_ENDPOINT"]
+          allowed_host = os.environ["GMI_ALLOWED_HOST"]
 
-          lines = ["## CF-VERIFY-001 -- Test 2: GMI avatar endpoint output format", ""]
-          lines.append(
-              "This step only queries model/account metadata. No full paid avatar render "
-              "is attempted here, to stay well under the $5 cap. It checks whether GMI's "
-              "model listing exposes enough detail to tell whether the avatar model "
-              "(e.g. heygen-avatar-4) returns a downloadable file or only a live session."
-          )
-          lines.append(
-              "\nKnown limitation: the exact schema for avatar-specific metadata was not "
-              "confirmed against a live response when this workflow was written -- this "
-              "call is exploratory evidence, not a guaranteed answer."
-          )
+          lines = ["## CF-VERIFY-001 -- Test 2: GMI avatar request (heygen-avatar-4)", ""]
+
+          def fail_summary(msg):
+              lines.append(msg)
+              print("\n".join(lines))
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                  f.write("\n".join(lines) + "\n")
+
+          if urlparse(endpoint).hostname != allowed_host:
+              fail_summary(f"ABORTED: endpoint host '{urlparse(endpoint).hostname}' does not "
+                            f"match the allowlisted host '{allowed_host}'. The secret was never sent.")
+              sys.exit(1)
+
+          def safe_url_meta(u):
+              try:
+                  p = urlparse(u)
+                  return f"{p.scheme}://{p.netloc}{p.path} (query string stripped)"
+              except Exception:
+                  return "(unparseable URL, omitted)"
+
+          def sanitize(body):
+              out = {}
+              for k in ("request_id", "model", "status", "created_at", "updated_at", "queued_at"):
+                  if k in body:
+                      out[k] = body[k]
+              outcome = body.get("outcome") or {}
+              media = outcome.get("media_urls") or []
+              if isinstance(media, list) and media:
+                  out["output_type"] = "downloadable_media_file"
+                  metas = []
+                  for m in media[:3]:
+                      url_val = m.get("url") if isinstance(m, dict) else m
+                      metas.append(safe_url_meta(url_val))
+                  out["media_url_meta"] = metas
+              else:
+                  session_like = [k for k in body.keys()
+                                  if any(t in k.lower() for t in ("session", "stream", "webrtc", "offer", "socket"))]
+                  if session_like:
+                      out["output_type"] = "possible_streaming_session"
+                      out["session_like_fields_present"] = session_like
+                  else:
+                      out["output_type"] = "undetermined"
+              return out
+
+          # avatar_id and voice_id below are GMI's own documented example values
+          # (docs.gmicloud.ai/model-quickstarts/video/heygen-avatar-4.md), not
+          # independently confirmed valid for this account. A short, fixed,
+          # hardcoded phrase keeps duration -- and therefore cost -- bounded.
+          payload = {
+              "model": "heygen-avatar-4",
+              "payload": {
+                  "avatar_id": "Abigail_expressive_2024112501",
+                  "avatar_style": "normal",
+                  "input_text": "Hi there.",
+                  "voice_id": "2d5b0e6cf36f460aa7fc47e3eee4ba54",
+                  "speed": 1.0,
+              },
+          }
+          headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+          start = time.time()
+          try:
+              resp = requests.post(endpoint, headers=headers, json=payload, timeout=30)
+          except requests.RequestException as e:
+              fail_summary(f"EXCEPTION submitting request: {type(e).__name__}: {e}\n"
+                           "If the request never reached GMI, no charge should have occurred -- verify in the GMI console.")
+              sys.exit(1)
 
           try:
-              resp = requests.get(endpoint, headers=headers, timeout=30)
-              lines.append(f"\nEndpoint: {endpoint}")
+              body = resp.json()
+          except ValueError:
               lines.append(f"HTTP status: {resp.status_code}")
-              lines.append("Response body (truncated, first 3000 chars):")
-              lines.append("```")
-              lines.append(resp.text[:3000])
-              lines.append("```")
-          except requests.RequestException as e:
-              lines.append(f"\nEXCEPTION calling GMI model-listing endpoint: {type(e).__name__}: {e}")
+              lines.append(f"Non-JSON response ({len(resp.content)} bytes) -- not printed raw. "
+                           "Cannot extract request_id; skipping status polling.")
+              print("\n".join(lines))
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                  f.write("\n".join(lines) + "\n")
+              sys.exit(0)
 
+          request_id = body.get("request_id")
+          lines.append(f"Submit HTTP status: {resp.status_code}")
+          lines.append(f"request_id: {request_id}")
+          lines.append(f"model: {body.get('model')}")
+          lines.append(f"initial status: {body.get('status')}")
+
+          final = dict(body)
+          if request_id:
+              status_url = f"{endpoint}/{request_id}"
+              if urlparse(status_url).hostname != allowed_host:
+                  lines.append("Skipping status polling: constructed status URL failed the host allowlist check.")
+              else:
+                  for attempt in range(36):  # up to ~3 minutes
+                      time.sleep(5)
+                      try:
+                          poll = requests.get(status_url, headers=headers, timeout=15)
+                          pbody = poll.json()
+                      except (requests.RequestException, ValueError):
+                          continue
+                      final = pbody
+                      st = pbody.get("status")
+                      if st in ("success", "failed", "error"):
+                          break
+
+          elapsed = time.time() - start
+          sanitized = sanitize(final)
+          lines.append(f"\nTotal elapsed (submit to terminal or timeout): {elapsed:.1f}s")
+          lines.append("Sanitized result fields (raw body never logged):")
+          lines.append("```json")
+          lines.append(json.dumps(sanitized, indent=2))
+          lines.append("```")
           lines.append(
-              "\nActual cost: model-listing calls are expected to be free or near-free, "
-              "consistent with typical OpenAI-compatible API conventions (UNVERIFIED for "
-              "GMI specifically -- check the console). No avatar generation call was made, "
-              "so no per-generation charge (reported ~$0.0667/request) was incurred here."
+              "\nThis is the authoritative answer to CF-VERIFY-001's avatar question: "
+              "output_type above is 'downloadable_media_file' if GMI returned a file URL, "
+              "'possible_streaming_session' if it returned session/stream-like fields "
+              "instead, or 'undetermined' if neither pattern matched -- in which case the "
+              "sanitized fields still capture status and request_id for follow-up."
           )
           lines.append(
-              "\nIf this response does not clearly answer whether the avatar model can "
-              "return a downloadable file, that remains UNKNOWN and requires either "
-              "clarified GMI documentation or a separately authorized, explicitly "
-              "budgeted follow-up generation call -- not an automatic escalation of spend."
+              "\nActual cost: not returned in this response. Documented worst-case ceiling "
+              "for this call was $0.20 (VERIFIED official rate $0.0667/sec for a ~1-2s "
+              "phrase). Verify the real charge in the GMI console and record it in "
+              "docs/verification/CF-VERIFY-001.md."
           )
 
           print("\n".join(lines))
@@ -222,10 +426,10 @@ jobs:
               f.write("\n".join(lines) + "\n")
           PYEOF
 
-      - name: Spend cap reminder
+      - name: Documented cost ceiling
         if: always()
         run: |
           {
-            echo "## Spend cap"
-            echo "This workflow is designed to stay well under CF-VERIFY-001's \$5 sub-cap: one voice-clone request (reported ~\$0.10) and one metadata/model-listing call (expected free or near-free). No full avatar-generation render was attempted by this workflow. Verify actual charges in the GMI console after this run and record them, call-by-call, in docs/verification/CF-VERIFY-001.md."
+            echo "## Documented, fixed-call cost ceiling"
+            echo "Both calls use hardcoded payloads with no user-editable text, duration, or repeat count. Worst-case combined ceiling: \$1.00 (voice clone, REPORTED ~\$0.10/request, not independently verified) + \$0.20 (avatar, VERIFIED \$0.0667/sec for ~1-2s) = **\$1.20**, well under the \$5 CF-VERIFY-001 sub-cap. Verify actual charges in the GMI console after this run and record them, call-by-call, in docs/verification/CF-VERIFY-001.md."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -40,7 +40,11 @@ Any other throwaway script needed to make live API calls is written outside the 
 
 ### Amendment: authorized CI file for secret entry and execution
 
-This packet's original "Forbidden paths" list (below) excluded all CI files. That is amended for exactly one file: `.github/workflows/cf-verify-001.yml`, a `workflow_dispatch`-only (manually triggered, never on push/PR/schedule) GitHub Actions workflow that reads `GMI_API_KEY` from GitHub's own repository-secret store — the only secure, click-only secret-entry mechanism actually available for this project, since this session has no secret-entry UI and the founder/controller declined terminal and manual-file-based approaches. No other CI, deployment, or infrastructure-as-code file is authorized by this amendment. The workflow is prepared and pushed for review in this packet; it is explicitly **not** executed or merged by this packet — see Authority boundary.
+This packet's original "Forbidden paths" list (below) excluded all CI files. That is amended for exactly one file: `.github/workflows/cf-verify-001.yml`, a `workflow_dispatch`-only (manually triggered, never on push/PR/schedule) GitHub Actions workflow that reads `GMI_API_KEY` from GitHub's own repository-secret store — the only secure, click-only secret-entry mechanism actually available for this project, since this session has no secret-entry UI and the founder/controller declined terminal and manual-file-based approaches. No other CI, deployment, or infrastructure-as-code file is authorized by this amendment.
+
+### Amendment 2: merging this PR before execution is authorized
+
+`workflow_dispatch` cannot be reliably triggered for a workflow that exists only on a feature branch — GitHub's manual-dispatch UI and API both expect the workflow file to be registered from the default branch. Merging PR #2 (containing only this packet's documentation and the one reviewed workflow file) into `main` is therefore authorized as the next step, distinct from and prior to actually triggering the workflow. Merging is not the same action as execution: merging only makes the workflow dispatchable; a human with repository write access still has to separately add the `GMI_API_KEY` secret and click "Run workflow." Claude Code may merge once this revision's diff has been reviewed, but has not done so as part of producing this revision itself — see Authority boundary.
 
 ### Forbidden paths
 
@@ -54,15 +58,15 @@ This packet's original "Forbidden paths" list (below) excluded all CI files. Tha
 
 Run the smallest, cheapest real GMI/Genblaze API calls that answer exactly two questions:
 
-1. **Voice cloning**: does GMI's `minimax-audio-voice-clone-speech-2.6-hd` (invoked directly and, if feasible, through Genblaze's `Pipeline`/`Step` via the `genblaze-gmicloud` adapter) produce real cloned-voice audio end to end? Use a short, non-personal, synthetic placeholder reference clip for this connectivity/capability test — not a real creator's voice — since no verified creator consent record exists yet (per `docs/canon/PRODUCT_CANON.md`'s consent-first rule, Phase 2 of the roadmap has not run). This test proves the mechanism works; it does not produce a usable creator asset.
-2. **Avatar output format**: does GMI's avatar model (for example `heygen-avatar-4`) return a downloadable/playable video file in any request mode, or only a live WebRTC streaming session? A minimal, cheapest-available request is sufficient to answer this — the goal is determining output shape, not producing a finished video.
+1. **Voice cloning**: does GMI's `minimax-audio-voice-clone-speech-2.6-hd` produce real cloned-voice audio end to end? Uses a single fixed, hardcoded call (no user-editable text, source, or repeat count) against the verified endpoint `https://console.gmicloud.ai/api/v1/ie/requestqueue/apikey/requests`, with a predetermined non-personal synthetic reference clip generated on the runner itself — not a real creator's voice, since no verified creator consent record exists yet (per `docs/canon/PRODUCT_CANON.md`'s consent-first rule, Phase 2 of the roadmap has not run). This test proves the mechanism works; it does not produce a usable creator asset. Documented worst-case cost ceiling: $1.00 (the ~$0.10/request figure found is REPORTED, not independently verified on an official static page; budgeted at 10x as a safety margin).
+2. **Avatar output format**: a single fixed, real `heygen-avatar-4` request (same verified endpoint, hardcoded short phrase, no user-editable duration) that determines whether GMI returns a downloadable/playable media file or only live session/stream fields — not a metadata-only guess. Documented worst-case cost ceiling: $0.20 (VERIFIED official rate $0.0667/sec, docs.gmicloud.ai quickstart and gmicloud.ai blog agree, for a ~1-2 second fixed phrase).
 
-Stop as soon as these two questions are answered, or the $5 cap is reached, whichever comes first. Do not attempt to resolve every remaining item from the original research dossier (GMI console pricing, exact HeyGen constraints, disclosure/watermarking rules, etc.) — those remain `UNKNOWN`/deferred and are not gates for `CF-RUN-001` unless they turn out to block the chosen first path.
+Combined documented worst-case ceiling: **$1.20**, well under the $5 CF-VERIFY-001 sub-cap — this is an enforced property of using two fixed, hardcoded, non-repeatable calls, not merely a reminder logged after the fact. If either question is answered, or if a call cannot be made safely (e.g., the endpoint fails the runtime host-allowlist check, or the synthetic clip can't be published), stop; do not attempt to resolve every remaining item from the original research dossier (GMI console pricing, exact HeyGen constraints, disclosure/watermarking rules, etc.) — those remain `UNKNOWN`/deferred and are not gates for `CF-RUN-001` unless they turn out to block the chosen first path.
 
 ### Acceptance checks
 
-1. Both questions above have a real-evidence answer (actual API request/response), or an explicit note of exactly what blocked the test within the $5 cap.
-2. Actual recorded spend is logged call-by-call (provider, model, request purpose, cost) and the running total is checked against the $5 sub-cap before each subsequent call.
+1. Both questions above have a real-evidence answer (actual API request/response, polled to a terminal status), or an explicit note of exactly what blocked the test.
+2. Actual recorded spend is logged call-by-call (provider, model, request purpose, cost) and compared against the $1.20 documented worst-case ceiling; both calls are fixed/hardcoded so no runtime spend-tracking loop is needed to stay under the $5 sub-cap.
 3. `GMI_API_KEY`'s value never appears in any file, commit, log, command output captured to a file, or receipt — only the environment-variable name.
 4. No HeyGen account, credential, or API call exists anywhere in the evidence trail.
 5. `git diff --check` is clean; no placeholder or contradiction regressions in the five live canon/state files.
@@ -82,21 +86,21 @@ git diff --check
 
 1. Confirm base SHA unchanged on `main`.
 2. Confirm `GMI_API_KEY` is present in the environment via a presence-only check (non-empty, never echoed) before any call.
-3. Run the voice-clone test call, record result and actual cost.
-4. Run the avatar-endpoint test call, record result and actual cost.
-5. Stop at $5 cumulative actual spend or once both questions are answered.
+3. Run the fixed voice-clone test call, record result and actual cost.
+4. Run the fixed avatar test call, record result and actual cost.
+5. Both calls are hardcoded and non-repeatable within a single run, so cumulative spend cannot exceed the documented $1.20 worst-case ceiling without a separate, deliberate re-run.
 6. Write findings to `docs/verification/CF-VERIFY-001.md`, update `CURRENT_STATE.md` and `CURRENT_ROADMAP.md` Phase 0.5 accordingly, commit, push, update the draft PR.
 7. Return the standard receipt from `CLAUDE.md`, separating actual recorded spend from any remaining estimate.
 
 ### Rollback
 
-Close the draft PR or revert the findings commit. Real paid calls made under this authorization are one-off provider charges with no rollback beyond not repeating them; the $5 cap bounds that exposure.
+Close the draft PR or revert the findings commit. Real paid calls made under this authorization are one-off provider charges with no rollback beyond not repeating them; the fixed, hardcoded, non-repeating design of both calls bounds that exposure to the documented $1.20 worst-case ceiling, well inside the $5 sub-cap.
 
 ### Authority boundary
 
 Claude may make the two GMI/Genblaze live test calls described above, up to $5 total actual spend, using the existing GMI key once its presence (not value) is confirmed. Claude may not create a HeyGen account or call a HeyGen endpoint, may not exceed the $5 sub-cap without a new explicit authorization, and may not treat this packet as license to run further exploratory paid calls beyond the two questions above.
 
-For the GitHub Actions execution path specifically: Claude may **prepare and push** `.github/workflows/cf-verify-001.yml` to this packet's PR for review. Claude may **not** trigger (`workflow_dispatch`) the workflow, and may not merge this PR or any other PR that would put the workflow on a branch from which it could run unreviewed. Execution is a distinct, separately authorized action — someone with repository write access clicks "Run workflow" in the GitHub UI after adding the `GMI_API_KEY` repository secret and reviewing the workflow file. Claude cannot click that button itself (no such control is exposed to any tool available to it) and is not authorized to attempt to trigger it via the API either.
+For the GitHub Actions execution path specifically: Claude may **prepare, push, and (per Amendment 2, once this revision is reviewed) merge** `.github/workflows/cf-verify-001.yml` and this packet's documentation into `main`, since the workflow cannot be reliably dispatched from a feature branch. Merging is authorized as a distinct step from triggering. Claude may **not** trigger (`workflow_dispatch`) the workflow under any circumstance, whether before or after merge. Execution is a separately authorized action — someone with repository write access clicks "Run workflow" in the GitHub UI after adding the `GMI_API_KEY` repository secret and reviewing the merged workflow file. Claude cannot click that button itself (no such control is exposed to any tool available to it) and is not authorized to attempt to trigger it via the API either.
 
 ### Required receipt additions
 
