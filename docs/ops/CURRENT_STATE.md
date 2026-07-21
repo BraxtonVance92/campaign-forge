@@ -2,16 +2,16 @@
 
 Last updated: 2026-07-21 (CF-BOOT-001 merged; CF-VERIFY-001 dispatched).
 
-## State: IN_PROGRESS — CF-VERIFY-001 (live provider verification), not yet started
+## State: IN_PROGRESS — CF-VERIFY-001 (live GMI/Genblaze capability test)
 
-The founder reviewed and approved the corrected sources of truth at exact SHA `9ae223920b0f71aed1831070a5ba9f4924683aec` ("APPROVE AS-IS"), and PR #1 was merged into `main`. The bootstrap gate is now cleared. Authorized face-and-voice video generation remains recorded as core product scope (`docs/ops/DECISION_LOG.md` D-010, D-011).
+The controller/CTO reviewed and approved the corrected sources of truth at exact SHA `9ae223920b0f71aed1831070a5ba9f4924683aec` ("APPROVE AS-IS"), and PR #1 was merged into `main` (`docs/ops/DECISION_LOG.md` D-012). The bootstrap gate is now cleared. Authorized face-and-voice video generation remains recorded as core product scope (D-010, D-011). CF-VERIFY-001 is authorized to run its two smallest GMI/Genblaze live test calls (voice cloning; avatar output format) up to a $5 sub-cap, using the existing GMI key (D-013); HeyGen is deferred and not to be used unless GMI proves unable to produce the required result.
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
 - Main head SHA: `3e06fc2e076f09c7b077d3f5e803583cd0ada5e4` (merge commit for PR #1, containing the CF-BOOT-001 docs pack).
-- PR #1: `MERGED` (was draft/open; approved by founder at head `9ae223920b0f71aed1831070a5ba9f4924683aec`, then merged via standard merge commit — no branch protection was configured on `main` at merge time).
+- PR #1: `MERGED` (was draft/open; approved by controller/CTO at head `9ae223920b0f71aed1831070a5ba9f4924683aec`, then merged via standard merge commit — no branch protection was configured on `main` at merge time).
 - Active packet branch: `docs/cf-verify-001`, created from the merged `main`.
 - The exact current candidate SHA for any in-flight branch is not recorded in this file. A commit cannot contain its own resulting SHA, so any SHA written here as "current" becomes stale the instant that commit is made. The exact current candidate SHA is maintained in the relevant PR's metadata (`headRefOid`) and in checkpoint/review receipts, generated after the commit exists.
 - At the merged main SHA, the repository contains `README.md`, root `CLAUDE.md`, and the seven canonical `docs/` files. No runtime application source exists on `main`.
@@ -60,8 +60,8 @@ Unknown. No billing export or provider dashboard evidence was supplied. The $50 
 
 ## Blocker
 
-`CF-VERIFY-001` (see `docs/ops/ACTIVE_WORK_PACKET.md`) has open items that require founder input before any live paid test call can run: confirmation of the HeyGen-direct + GMI/MiniMax provider split, new HeyGen API credentials (a new paid service), and a ruling on whether the $50 ceiling is meant to cover hosting or API calls only. The prior Sites source has not been recovered into GitHub.
+None from founder/controller input — provider (GMI first), credential (existing GMI key), and budget (part of the overall $50 ceiling, with a $5 sub-cap for this packet) are all resolved per D-013. The only remaining gate is technical: `GMI_API_KEY` must be confirmed present in the environment, without its value ever being exposed in chat, commits, or logs, before the first live call runs. The prior Sites source has not been recovered into GitHub.
 
 ## Next safe action
 
-Founder/controller resolves the CF-VERIFY-001 open items listed above. Once resolved, Claude Code executes the narrow, explicitly-scoped live verification calls defined in that packet, strictly within whatever budget and credential authorization is given.
+Confirm `GMI_API_KEY` is present (presence-only check, value never displayed), then run the two smallest GMI/Genblaze live test calls authorized in `CF-VERIFY-001`: voice cloning, and whether the GMI avatar endpoint can return a downloadable video. Record actual spend call-by-call against the $5 sub-cap.
