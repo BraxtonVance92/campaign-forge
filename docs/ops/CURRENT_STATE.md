@@ -1,16 +1,20 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21.
+Last updated: 2026-07-21 (canon repair in progress following a founder product correction).
 
-## State: BLOCKED at bootstrap gate
+## State: IN_PROGRESS — canon repair, pending controller review
 
-### Repository-verified
+The founder issued a binding correction rejecting the prior no-face/no-voice decision (D-005). Authorized face-and-voice video generation is now recorded as core product scope (`docs/ops/DECISION_LOG.md` D-010, D-011). This correction is reflected in `docs/canon/FOUNDER_CANON.md`, `docs/canon/PRODUCT_CANON.md`, `docs/roadmap/CURRENT_ROADMAP.md`, `docs/ops/AUTHORITY_MATRIX.md`, and this file. The bootstrap gate remains open until the controller reviews the corrected sources of truth for coherence.
+
+### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
-- Default branch: `main` (reported by repository URLs; re-verify before dispatch).
-- Recorded main head: `269d2900b1131c793d7cdf2e87655891f5256149`.
-- At that SHA the repository contains a minimal `README.md` and root `CLAUDE.md` operating contract.
-- No runtime source, tests, CI, deployment configuration, or canonical documents were repository-verified at audit time.
+- Default branch: `main`.
+- Main head SHA: `269d2900b1131c793d7cdf2e87655891f5256149` (unchanged since the original bootstrap audit; re-verified before this correction).
+- Active correction branch: `docs/cf-boot-001`.
+- Pull request: #1 (draft, open), targeting `main`.
+- At the recorded main SHA, the repository contains a minimal `README.md` and root `CLAUDE.md` operating contract. No runtime application source exists on `main`.
+- Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
 
 ### Reported history, not repository-verified
 
@@ -19,17 +23,20 @@ Last updated: 2026-07-21.
 - Backblaze settings and a GMI inference key were reportedly saved in a hosted environment.
 - Historical prototype output included a mock video.
 
-These claims do not establish that the GitHub repository contains the implementation, that the current deployment maps to a repository SHA, or that real creator analysis/Genblaze generation exists.
+These claims do not establish that the GitHub repository contains the implementation, that any deployment maps to a repository SHA, or that real creator analysis, voice cloning, face/avatar generation, or Genblaze orchestration exists.
 
 ### Explicitly not verified/built in this repository
 
 - Real creator analysis.
+- Real consent capture and storage.
+- Real cloned-voice generation.
+- Real face/avatar video generation.
+- Real playable rendered video output.
 - Genblaze orchestration.
-- Versioned creator fingerprint persistence.
+- Versioned creator profile persistence.
 - Real GMI image/video generation.
-- Face or voice generation.
 - Exact automated spend reporting.
-- CI, reviewed merge, repo-linked deployment, or live acceptance.
+- CI, reviewed merge, repo-linked deployment, live acceptance, or any Render service.
 
 ## External facts verified 2026-07-21
 
@@ -38,6 +45,7 @@ These claims do not establish that the GitHub repository contains the implementa
 - Required submission: working URL, repository/setup instructions, providers/models, B2/Genblaze explanation, and public demo video under three minutes.
 - Judging criteria are equally weighted: utility, production readiness, B2 orchestration, Genblaze use.
 - Genblaze's current public repository describes a Python 3.11+ SDK, B2/S3 storage backend, provider adapters including GMI Cloud, pipeline events, and canonical provenance manifests.
+- Whether Genblaze/GMI Cloud directly support authorized voice cloning or face/avatar generation is Unknown — verification required (see `docs/roadmap/CURRENT_ROADMAP.md` Phase 0.5).
 
 Sources:
 
@@ -51,8 +59,8 @@ Unknown. No billing export or provider dashboard evidence was supplied. The $50 
 
 ## Blocker
 
-The seven draft source-of-truth files must be reviewed, committed to the repository, and reconciled. The runtime base must then be re-audited because the prior Sites source has not been recovered into GitHub.
+The corrected sources of truth must be reviewed by the controller for coherence, then approved and merged. Provider capability verification for authorized voice cloning and face/avatar generation (Phase 0.5) has not started. The prior Sites source has not been recovered into GitHub.
 
 ## Next safe action
 
-Founder approves or corrects the bootstrap canon. Claude then commits the approved files on a docs branch and returns an exact-SHA receipt. Runtime Block 1 begins only after controller verification.
+Controller reviews the corrected canon on PR #1 for coherence with the founder's face-and-voice correction. Once approved and merged, the next packet is provider capability and architecture verification (Phase 0.5), not runtime implementation.
