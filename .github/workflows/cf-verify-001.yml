@@ -73,11 +73,11 @@ on:
         required: true
         default: ''
       run_voice_test:
-        description: 'Run Test 1: GMI voice-clone connectivity (fixed call, worst-case $1.00)'
+        description: 'Run Test 1: GMI voice-clone connectivity (single fixed call; cost bounded by the $20 prepaid account balance, not an estimate)'
         type: boolean
         default: true
       run_avatar_test:
-        description: 'Run Test 2: GMI real avatar request to determine downloadable-file vs. WebRTC-only output (fixed call, worst-case $0.20)'
+        description: 'Run Test 2: GMI real avatar request to determine downloadable-file vs. WebRTC-only output (single fixed call; cost bounded by the $20 prepaid account balance, not an estimate)'
         type: boolean
         default: true
 
