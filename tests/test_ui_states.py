@@ -130,6 +130,35 @@ def test_local_fallback_result_shows_honest_non_gmi_badge_not_experimental_badge
     assert "Experimental analysis" not in html
 
 
+def test_failed_provider_attempts_render_alongside_the_real_result():
+    """When a result includes a record of prior failed GMI attempts (e.g.
+    a local-fallback result produced after GMI itself failed), those
+    attempts must render on the page, not be silently dropped -- a founder
+    reading the page must be able to see both what worked and what didn't."""
+    project, source = _make_project_and_source()
+    extended = _full_extended_analysis(
+        analysis_provider="local-fallback-pipeline",
+        sections={
+            "provider_attempts_that_failed": [
+                {
+                    "provider": "gmi-cloud",
+                    "model": "nvidia/nemotron-3-nano-omni",
+                    "http_status": 404,
+                    "sanitized_reason": "No matching target server found for model nvidia/nemotron-3-nano-omni",
+                },
+            ],
+            "transcript": [{"start_seconds": 0.0, "end_seconds": 1.0, "text": "hi"}],
+        },
+    )
+    html = _render_project_page(project, source, extended)
+    assert "Provider Attempts That Failed" in html
+    assert "nvidia/nemotron-3-nano-omni" in html
+    assert "404" in html
+    assert "No matching target server" in html
+    # The real content is still there alongside the failure record.
+    assert "hi" in html
+
+
 def test_successful_result_shows_honest_empty_state_for_empty_lists():
     """An empty list within a section (e.g. no missed/uncertain items found)
     must say so honestly, not render a blank list."""
