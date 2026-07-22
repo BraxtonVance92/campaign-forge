@@ -1,18 +1,18 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21 (CF-RUN-001 merged; PR #5 UI refresh merged; CF-RUN-002 dispatched, blocked on credentials).
+Last updated: 2026-07-22 (PR #6 merged — CF-00 reconciliation/Execution Ledger adoption; PR #7 open, awaiting R1/R2 — CF-01 credential-readiness research; CF-01 remains blocked on credentials).
 
-## State: BLOCKED ON CREDENTIALS — CF-RUN-002 (first live, non-fabricated analysis)
+## State: BLOCKED ON CREDENTIALS — CF-01 (first live, non-fabricated analysis, per docs/roadmap/CAMPAIGNFORGE_EXECUTION_LEDGER.md)
 
-`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, and the PR #5 UI refresh are all `MERGED`. `main` is at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (merge commit for PR #5). The full upload → analyze → persist → display flow is implemented and tested end-to-end; the only remaining gap is that no real `GMI_API_KEY` or Backblaze B2 credentials are present in this environment, so every real analysis attempt honestly reports itself as blocked rather than fabricating a result. See "Blocker" and "Founder setup instruction" below for exactly what to do to unblock this.
+`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, the PR #5 UI refresh, and PR #6 (CF-00 reconciliation) are all `MERGED`. `main` is at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (merge commit for PR #6). PR #7 (CF-01 research: Execution Ledger adoption, direct-bytes research, this file's own contradiction fix) is open, CI-passing, awaiting R1/R2 exact-SHA review before merge. The full upload → analyze → persist → display flow is implemented and tested end-to-end; the only remaining gap is that no real `GMI_API_KEY` or Backblaze B2 credentials are present in this environment, so every real analysis attempt honestly reports itself as blocked rather than fabricating a result. See "Blocker" and "Founder setup instruction" below for exactly what to do to unblock this.
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `e5b26eafd2917cd8bbfffa607f554195106c6a47`.
-- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`.
-- CI on `main` post-merge: `SUCCESS` at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (push-triggered run of `.github/workflows/cf-run-001-tests.yml`).
+- Main head SHA: `f201ba5fbca15326f81ef3605dd281c88f0d0f4b`.
+- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`. PR #6: `MERGED`. PR #7: `OPEN` (draft, CI passing, awaiting R1/R2).
+- CI on `main` post-merge: `SUCCESS` at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (https://github.com/BraxtonVance92/campaign-forge/actions/runs/29874473119).
 - The exact current candidate SHA for any future in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
 - `main` now contains the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, two workflows (`cf-verify-001.yml` — prepared, not executed; `cf-run-001-tests.yml` — real, passing), and the full `app/`/`tests/` runtime application described below, including the PR #5 UI refresh (desktop layout width fix, restructured result display, accessibility fixes).
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
@@ -66,7 +66,7 @@ Unknown/zero. No paid provider call has been made in this repository's history. 
 
 ## Blocker
 
-`CF-RUN-002`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented, tested, and now merged to `main`. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret. Re-confirmed present-but-empty in this environment on 2026-07-21 (checked `.env` and the shell environment directly — no value found for any of the five variable names; only `.env.example`'s blank names exist).
+`CF-01`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented, tested, and now merged to `main`. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret. Re-confirmed present-but-empty in this environment on 2026-07-21 (checked `.env` and the shell environment directly — no value found for any of the five variable names; only `.env.example`'s blank names exist).
 
 ### Founder setup instruction (exact, current as of 2026-07-21)
 
@@ -83,4 +83,4 @@ No Render or other hosted deployment exists yet, so the only place these current
 
 ## Next safe action
 
-Controller/founder supplies the credentials per the instruction above (or explicitly declines/defers). Once supplied, wire them in and run the first real, live, non-fabricated analysis (`CF-RUN-002`, D-022), capturing sanitized evidence and flipping `REQUEST_SHAPE_VERIFIED`. Until then, the next dependent block (Genblaze generation leg) remains available to plan but not to build against real provider behavior.
+Controller/founder supplies the credentials per the instruction above (or explicitly declines/defers). Once supplied, wire them in and run `CF-02`/`CF-03` (the first real, live, non-fabricated analysis, per D-023), capturing sanitized evidence and flipping `REQUEST_SHAPE_VERIFIED`. Until then, the next dependent block (Genblaze generation leg) remains available to plan but not to build against real provider behavior.
