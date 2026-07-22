@@ -1,10 +1,12 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-22 (PR #8 merged — CF-02 executed live; evidence closed out with a durable screenshot, full patch artifact, and this update).
+Last updated: 2026-07-22 (CF-04 reusable pipeline implemented and verified once on the real authorized video; pending R1/R2 on branch `feat/cf04-analysis-pipeline`; ledger CF-04 proof gate still blocked on additional authorized videos).
 
-## State: `MERGED` — CF-02 real analysis produced via a one-time manual process; not `DEPLOYED`, not `LIVE_VERIFIED`, not `COMPLETE`
+## State: CF-04 `IN_PROGRESS` — reusable in-app analysis pipeline real and exercised; not `DEPLOYED`, not `LIVE_VERIFIED`, not `COMPLETE`
 
-`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, the PR #5 UI refresh, PR #6 (CF-00), PR #7 (CF-01), and PR #8 (CF-02) are all `MERGED`. **Exact merged main SHA: `644bdf6b13d6d453d32d5cd1dc716bf7ec38882a`.**
+`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, the PR #5 UI refresh, PR #6 (CF-00), PR #7 (CF-01), PR #8 (CF-02), PR #9 (CF-02 evidence closure), PR #10 (CF-03 animatic display), and PR #11 (CF-03 V2 + versioning) are all `MERGED`. **Prior merged main SHA: `af6ff08bf83be2d55cd84abe6ef610412d090adf`** (updated at CF-04 merge time in the PR record).
+
+**CF-04 (the ledger's automatic evidence extraction pipeline)** now exists as real application code (`app/pipeline.py`): consent-gated media validation → real ffmpeg probing → audio extraction → real local faster-whisper transcription → deterministic frame sampling → evidence-linked observations → per-stage persisted state (`queued`→`probing`→`transcribing`→`sampling_frames`→`analyzing`→`completed`/`partially_completed`/`failed`) → project-page display → restart-safe persistence. It was verified once, end-to-end, through the real HTTP route on the one genuinely authorized video (~4.9s; probe/transcript/frames all spot-checked against known content — full detail in `docs/verification/CF-04-pipeline-receipt.md`). The pipeline has **no vision model**: visual topics are persisted as `unknown` with extracted frames attached for human review, never invented. A second authorized video does not exist yet, so the ledger CF-04 proof gate (five representative videos) remains **BLOCKED on additional authorized uploads** — the exact upload request is recorded in the receipt. The manual one-off CF-02 process is now superseded for future videos by this real pipeline; the CF-02 result itself is preserved unchanged.
 
 `CF-02` (the real live provider probe) was executed for real against the founder's actual GMI credential and one real authorized video: the originally-coded model (`nvidia/nemotron-3-nano-omni`) is not deployed on this account (HTTP 404), and two other real, unrelated models (`openai/gpt-4o-mini`, `google/gemini-3.1-flash-lite-preview`) both returned HTTP 402 "Insufficient balance" — an account-wide funding gate, not a code or format defect. **No GMI analysis succeeded.** Full sanitized evidence: `docs/verification/CF-02-experiment-receipt.md`, `docs/verification/CF-02-model-candidates.md`.
 

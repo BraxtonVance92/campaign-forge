@@ -125,6 +125,63 @@
       </section>
       {% endif %}
 
+      {% if source is not none %}
+      <section class="content-card">
+        <div class="section-heading"><span class="section-number">{% if analysis_run and analysis_run.state == "completed" %}✓{% else %}04{% endif %}</span><div><h2>Automated pipeline analysis</h2><p>CampaignForge's reusable local analysis: real media probing, local transcription, and deterministic frame sampling.</p></div>{% if analysis_run %}<span class="badge {% if analysis_run.state == 'completed' %}badge-success{% endif %}">{{ analysis_run.state | replace('_', ' ') | upper }}</span>{% endif %}</div>
+        {% if analysis_run is none %}
+        <p>Not yet run for this video.</p>
+        <form action="/projects/{{ project.id }}/sources/{{ source.id }}/pipeline-analyze" method="post" data-loading-text="Analyzing…"><button class="button button-primary button-fit" type="submit">Run pipeline analysis <span aria-hidden="true">⚙</span></button></form>
+        {% else %}
+          {% if analysis_run.state == "failed" %}
+          <aside class="notice notice-warning" role="alert"><span class="notice-icon">!</span><div><strong>Pipeline failed honestly</strong><p>{{ analysis_run.errors | join(" ") }}</p></div></aside>
+          <form action="/projects/{{ project.id }}/sources/{{ source.id }}/pipeline-analyze" method="post" data-loading-text="Retrying…"><button class="button button-primary button-fit" type="submit">Try again <span aria-hidden="true">↻</span></button></form>
+          {% else %}
+            {% if analysis_run.state == "partially_completed" %}
+            <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Partially completed</strong><p>Some stages did not finish: {{ analysis_run.errors | join(" ") if analysis_run.errors else "see limitations below." }}</p></div></aside>
+            {% endif %}
+
+            {% if analysis_run.transcript %}
+            <h3 style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c8c7c3;margin:18px 0 8px;">Timestamped transcript</h3>
+            <div class="json-tree" style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:12px 16px;">
+              {% for seg in analysis_run.transcript %}<p style="margin:4px 0;font-size:12.5px;"><code style="color:var(--accent);">{{ seg.start_seconds }}–{{ seg.end_seconds }}s</code> {{ seg.text }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <h3 style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c8c7c3;margin:18px 0 8px;">Evidence-linked observations</h3>
+            <div class="profile-sections extended-sections">
+              {% for ob in analysis_run.observations %}
+              <article class="profile-section full">
+                <h3>{{ ob.topic | replace('_', ' ') | title }} <span class="badge" style="font-size:9px;">{{ ob.classification | replace('_', ' ') }} · {{ ob.confidence }}</span></h3>
+                <p style="color:var(--muted);font-size:13px;">{{ ob.statement }}</p>
+                <p style="color:#8a8f99;font-size:11px;">Evidence ({{ ob.evidence_type | replace('_', ' ') }}): {{ ob.evidence_ref }}{% if ob.limitation %} · {{ ob.limitation }}{% endif %}</p>
+              </article>
+              {% endfor %}
+            </div>
+
+            {% if analysis_run.frames %}
+            <h3 style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c8c7c3;margin:18px 0 8px;">Sampled evidence frames (for human review)</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              {% for f in analysis_run.frames %}
+              <figure style="margin:0;text-align:center;"><img src="/projects/{{ project.id }}/sources/{{ source.id }}/analysis-frame/{{ loop.index0 }}" alt="Frame at {{ f.timestamp_seconds }}s" style="width:84px;border-radius:8px;display:block;" loading="lazy"><figcaption style="font-size:10px;color:#8a8f99;">{{ f.timestamp_seconds }}s</figcaption></figure>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if analysis_run.limitations %}<div class="limitations"><strong>Limitations</strong><ul>{% for item in analysis_run.limitations %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
+
+            <details class="technical-details">
+              <summary>Pipeline details</summary>
+              <dl>
+                {% for k, v in analysis_run.engine_info.items() %}<dt>{{ k | replace('_', ' ') | title }}</dt><dd>{{ v }}</dd>{% endfor %}
+                <dt>Input checksum</dt><dd><code>{{ analysis_run.input_checksum_sha256 }}</code></dd>
+                <dt>Stage timestamps</dt><dd>{% for k, v in analysis_run.stage_timestamps.items() %}{{ k }}: {{ v }}<br>{% endfor %}</dd>
+              </dl>
+            </details>
+          {% endif %}
+        {% endif %}
+      </section>
+      {% endif %}
+
       {% if generated_videos %}
       <section class="content-card">
         <div class="section-heading"><span class="section-number">03</span><div><h2>Generated video experiments</h2><p>Content experiments built from this project's real analysis, oldest to newest.</p></div><span class="badge">{{ generated_videos | length }} VERSION{{ "S" if generated_videos | length != 1 else "" }}</span></div>

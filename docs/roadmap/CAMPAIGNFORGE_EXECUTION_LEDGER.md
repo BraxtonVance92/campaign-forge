@@ -163,7 +163,7 @@ threshold: no major factual invention and at least 4/5 usefulness.
 ### Phase 1 — Validate whether the intelligence is actually valuable
 
 **CF-04 — Automatic evidence extraction pipeline**
-Status: PLANNED
+Status: IN_PROGRESS (status update 2026-07-22, D-026: the reusable in-app pipeline is implemented, tested with synthetic fixtures, and verified once on the one real authorized video — see `docs/verification/CF-04-pipeline-receipt.md`. The proof gate below requires five representative videos and remains OPEN, blocked on additional authorized uploads.)
 Depends on: CF-03 approved
 Objective: Remove the manual busywork the founder rejected.
 Work: Automatically derive video duration, technical metadata, transcript

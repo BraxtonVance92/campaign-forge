@@ -6,3 +6,8 @@ jinja2>=3.1
 boto3>=1.34
 httpx>=0.27
 pytest>=8.0
+# CF-04 local analysis pipeline: bundled ffmpeg binary (probing, audio
+# extraction, frame sampling) and local speech-to-text. Pinned to the
+# versions actually exercised; no network service is called by either.
+imageio-ffmpeg==0.6.0
+faster-whisper==1.2.1

@@ -120,6 +120,73 @@ class ExtendedCreatorAnalysis(BaseModel):
     request_shape_verified: bool = False
 
 
+AnalysisRunState = Literal[
+    "queued",
+    "probing",
+    "transcribing",
+    "sampling_frames",
+    "analyzing",
+    "completed",
+    "partially_completed",
+    "failed",
+]
+
+
+class TranscriptSegment(BaseModel):
+    start_seconds: float
+    end_seconds: float
+    text: str
+
+
+class FrameEvidence(BaseModel):
+    timestamp_seconds: float
+    storage_key: str
+    checksum_sha256: str
+
+
+class PipelineObservation(BaseModel):
+    """One evidence-linked observation. `classification` distinguishes what
+    the pipeline directly measured from what it inferred and from what it
+    genuinely cannot determine; `evidence_type`/`evidence_ref` tie every
+    claim back to a transcript segment, probe field, or extracted frame."""
+
+    topic: str
+    statement: str
+    evidence_type: Literal[
+        "transcript_segment", "media_probe", "frame_available_for_human_review", "derived_metric"
+    ]
+    evidence_ref: str
+    confidence: Literal["high", "medium", "low"]
+    classification: Literal["directly_observed", "inferred", "unknown"]
+    limitation: str | None = None
+
+
+class AnalysisRun(BaseModel):
+    """A reusable in-app pipeline run (CF-04). Stored separately from the
+    CF-02 ExtendedCreatorAnalysis so historical results are never
+    overwritten. State is persisted after every stage transition, so a
+    crash or restart leaves an honest partial state rather than a false
+    'completed' or a silent loss."""
+
+    id: str = Field(default_factory=new_id)
+    project_id: str
+    source_id: str
+    consent_id: str
+    input_checksum_sha256: str
+    state: AnalysisRunState = "queued"
+    stage_timestamps: dict[str, str] = Field(default_factory=dict)
+    engine_info: dict[str, str] = Field(default_factory=dict)
+
+    media_probe: dict | None = None
+    transcript: list[TranscriptSegment] = Field(default_factory=list)
+    frames: list[FrameEvidence] = Field(default_factory=list)
+    observations: list[PipelineObservation] = Field(default_factory=list)
+
+    errors: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class GeneratedVideoRecord(BaseModel):
     """A generated video artifact tied to a project/source. `kind` is an
     honest classification, never inflated: an animatic is not a final
