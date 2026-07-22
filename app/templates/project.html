@@ -185,16 +185,25 @@
       {% if generated_videos %}
       <section class="content-card">
         <div class="section-heading"><span class="section-number">03</span><div><h2>Generated video experiments</h2><p>Content experiments built from this project's real analysis, oldest to newest.</p></div><span class="badge">{{ generated_videos | length }} VERSION{{ "S" if generated_videos | length != 1 else "" }}</span></div>
-        <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>AI-assisted experiments — no real likeness is used in any of them</strong><p>Narration in every version is a clearly generic synthetic text-to-speech voice with no relation to the creator's real voice — used because no voice-clone consent exists yet. Each version is labeled individually below with what it is.</p></div></aside>
+        <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>AI-assisted experiments — every version is AI-generated and individually labeled</strong><p>No version conceals AI assistance. Each card below states exactly what it is and whether a real, authorized likeness or voice is used.</p></div></aside>
         <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;margin:16px 0;">
+          {% set narration_labels = {
+            "none": "no narration",
+            "synthetic-generic-tts": "generic synthetic text-to-speech voice (no relation to the creator's real voice)",
+            "authorized-voice-clone": "authorized synthetic clone of the creator's voice",
+            "original-recording": "creator's original recorded voice",
+          } %}
           {% for gv in generated_videos %}
           <div style="flex:1;min-width:260px;max-width:330px;">
             <p style="text-align:center;font-weight:600;margin:0 0 8px;">V{{ loop.index }} — {{ gv.kind }}<br><small style="color:#9aa0ab;">{{ gv.duration_seconds }}s · {{ gv.width }}x{{ gv.height }}</small></p>
             {% if gv.kind in ("storyboard", "animatic") %}
             <p style="text-align:center;margin:0 0 8px;font-size:0.82rem;color:#c9a35a;">Animatic/storyboard — not a finished video.</p>
             {% elif gv.kind == "preview-render" %}
-            <p style="text-align:center;margin:0 0 8px;font-size:0.82rem;color:#7fa8d9;">Finished-concept preview — motion graphics, synthetic voice, no real footage.</p>
+            <p style="text-align:center;margin:0 0 8px;font-size:0.82rem;color:#7fa8d9;">Finished-concept preview — motion graphics, no real footage.</p>
+            {% else %}
+            <p style="text-align:center;margin:0 0 8px;font-size:0.82rem;color:#8fd9a8;">Final render — AI-generated video.</p>
             {% endif %}
+            <p style="text-align:center;margin:0 0 8px;font-size:0.78rem;color:#9aa0ab;">{{ "Authorized real likeness of the creator is used" if gv.likeness_used else "No real likeness is used" }} · Narration: {{ narration_labels[gv.narration_kind] }}.</p>
             <video controls preload="metadata" style="width:100%;border-radius:12px;display:block;" src="/projects/{{ project.id }}/sources/{{ gv.source_id }}/generated-video?video_id={{ gv.id }}"></video>
             <details class="technical-details">
               <summary>Render details</summary>

@@ -195,8 +195,9 @@ def test_template_displays_versions_side_by_side_with_honest_labels():
     assert "Generated video experiments" in html
     assert "2 VERSIONS" in html
     assert "V1" in html and "V2" in html
-    assert "no real likeness is used" in html
-    assert "generic synthetic text-to-speech voice" in html
+    # Likeness/narration disclosure is per-card, derived from each record.
+    assert html.count("No real likeness is used") == 2
+    assert html.count("generic synthetic text-to-speech voice") == 2
     assert html.count("<video") == 2
     assert f"video_id={v1.id}" in html
     assert f"video_id={v2.id}" in html
@@ -222,9 +223,33 @@ def test_template_disclosure_is_conditioned_per_version_not_shared():
     assert html.count("Finished-concept preview") == 1
     # The old blanket claim that every version is an unfinished animatic is gone.
     assert "These are animatics/storyboards, not finished videos" not in html
-    # The always-true disclosures still apply to every version.
-    assert "no real likeness is used in any of them" in html
-    assert "generic synthetic text-to-speech voice" in html
+    # Likeness/narration lines are per-card (all three records are synthetic here).
+    assert html.count("No real likeness is used") == 3
+    assert html.count("generic synthetic text-to-speech voice") == 3
+
+
+def test_final_render_with_authorized_likeness_gets_honest_labels():
+    """A V4-style record (final-render, authorized likeness + voice clone)
+    must be labeled with the authorized-likeness and voice-clone wording and
+    must NOT carry the no-real-likeness or generic-TTS wording — and the
+    synthetic versions beside it keep theirs. The banner must make no
+    blanket per-version claim that would be falsified by the mix."""
+    v3, _ = _make_record(filename="v3.mp4", kind="preview-render",
+                         render_method="pil-motion-graphics+ffmpeg-mix")
+    v4, _ = _make_record(
+        filename="v4.mp4", kind="final-render",
+        narration_kind="authorized-voice-clone", likeness_used=True,
+        render_method="provider-avatar-render",
+    )
+    html = _render_with_videos([v3, v4])
+    assert "Final render — AI-generated video." in html
+    assert html.count("Authorized real likeness of the creator is used") == 1
+    assert html.count("authorized synthetic clone of the creator&#39;s voice") == 1
+    assert html.count("No real likeness is used") == 1  # only the V3 card
+    assert html.count("generic synthetic text-to-speech voice") == 1  # only V3
+    # Banner no longer makes blanket claims false for this mix.
+    assert "no real likeness is used in any of them" not in html
+    assert "Narration in every version" not in html
 
 
 def test_template_omits_video_section_when_absent():
