@@ -14,6 +14,7 @@ from app.models import (
     ConsentRecord,
     CreatorProfile,
     ExtendedCreatorAnalysis,
+    GeneratedVideoRecord,
     Project,
     SourceAsset,
 )
@@ -42,6 +43,14 @@ def _profile_key(project_id: str, source_id: str) -> str:
 
 def _extended_analysis_key(project_id: str, source_id: str) -> str:
     return f"projects/{project_id}/sources/{source_id}/extended_analysis.json"
+
+
+def _generated_video_record_key(project_id: str, source_id: str) -> str:
+    return f"projects/{project_id}/sources/{source_id}/generated_video.json"
+
+
+def generated_video_file_key(project_id: str, source_id: str, filename: str) -> str:
+    return f"projects/{project_id}/sources/{source_id}/generated/{filename}"
 
 
 def save_project(storage: StorageBackend, project: Project) -> None:
@@ -157,6 +166,26 @@ def get_extended_analysis(
     if raw.get("status") == "blocked":
         return AnalysisBlockedRecord.model_validate(raw)
     return ExtendedCreatorAnalysis.model_validate(raw)
+
+
+def save_generated_video(
+    storage: StorageBackend, record: GeneratedVideoRecord, video_bytes: bytes
+) -> None:
+    storage.put_object(record.storage_key, video_bytes, record.content_type)
+    storage.put_object(
+        _generated_video_record_key(record.project_id, record.source_id),
+        record.model_dump_json().encode("utf-8"),
+        "application/json",
+    )
+
+
+def get_generated_video_record(
+    storage: StorageBackend, project_id: str, source_id: str
+) -> GeneratedVideoRecord | None:
+    key = _generated_video_record_key(project_id, source_id)
+    if not storage.exists(key):
+        return None
+    return GeneratedVideoRecord.model_validate_json(storage.get_object(key))
 
 
 def get_analysis_result(

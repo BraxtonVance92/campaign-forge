@@ -13,12 +13,15 @@ from tests.conftest import make_fake_mp4_bytes
 from tests.test_upload_validation import create_project
 
 
-def _render_project_page(project, source, extended_result, storage_backend="in-memory-fake"):
+def _render_project_page(
+    project, source, extended_result, storage_backend="in-memory-fake", generated_video=None
+):
     template = templates.get_template("project.html")
     return template.render(
         project=project,
         source=source,
         extended_result=extended_result,
+        generated_video=generated_video,
         storage_backend=storage_backend,
     )
 
