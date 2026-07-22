@@ -450,3 +450,23 @@ The founder should be interrupted only at these checkpoints:
 5. Approve deployment, pricing, spend, or public launch.
 
 Everything else is team execution and evidence gathering.
+
+### CF-03 V3 addendum (2026-07-22)
+
+- V3 "finished-concept preview" produced under the founder's locked $0 local
+  production decision: PIL procedural motion graphics (641 frames @24fps,
+  720x1280), macOS `say` (Samantha) generic synthetic narration, numpy-
+  synthesized music/SFX, imageio-ffmpeg assembly. No external generation
+  service was called; no creator face, voice, likeness, or name was used;
+  a persistent on-video disclosure is present throughout.
+- Saved as third generated-video version (kind `preview-render`, id
+  `48134d24-0d6f-497c-ba0e-d147990c182b`, sha256 `f093c8ac9fa8a245…`);
+  V1/V2 records and bytes unchanged. Template disclosure is now conditioned
+  per version (animatic label vs finished-concept-preview label) per the
+  R1/R2 precondition recorded when versioning shipped. Generated-video route
+  now honors HTTP Range requests so browser seeking works.
+- State: implemented and locally verified (full decode, per-scene frame
+  inspection, whisper transcription of the final mix, browser play/seek/
+  resume/ended via headless Chromium against the locally-running dev
+  server). Not deployed, not customer-live, not published. Spend: $0 —
+  no external API was called during V3 production.
