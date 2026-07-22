@@ -21,7 +21,8 @@
 | Remove face or voice generation from core product scope | No | Recommend only | Approves |
 | Add paid service or exceed $50 project ceiling | No | Recommend only | Approves |
 | Access or expose production secrets/user data | Only via approved secret/runtime boundary | Approves design | Approves new access |
-| Merge PR | No unless separately granted | Only after R1+R2 exact-SHA approval and branch protection | Founder approval required for first release |
+| Merge PR — routine in-ledger change (docs sync, tests, CI repair, accessibility/error-handling fix, bounded implementation already authorized by the active ledger) | Allowed automatically once R1+R2 approve the exact same candidate SHA and CI is terminal-success (D-024) | Only after R1+R2 exact-SHA approval and branch protection | Not required per-instance; founder retains standing veto and may revoke this authority at any time |
+| Merge PR — first release, new runtime scope, or anything outside the active ledger's already-authorized blocks | No unless separately granted | Only after R1+R2 exact-SHA approval and branch protection | Founder approval required |
 | Deploy production, including creating a Render service | No | Prepare release; no standing authority yet | Approves each deployment until delegated |
 | Submit Devpost entry, publish video, send external message | No | Prepare only | Approves/executes |
 | Destructive data deletion, migration, permission broadening | No | Recommend with rollback | Explicit approval required |
@@ -74,6 +75,8 @@ The controller may select implementation details that preserve canon: libraries,
 ## Merge/release rule
 
 No material change is `APPROVED` until R1 and R2 approve the exact same candidate SHA. Any commit invalidates both approvals. No change is `COMPLETE` until merged, deployed from main, live-verified, and receipts/current state are updated.
+
+**Autonomous routine-merge lane (D-024, 2026-07-22):** For routine in-ledger changes only (docs synchronization, tests, CI repairs, accessibility/error-handling fixes, and bounded implementation already authorized by the active work packet/ledger), the maker may merge automatically once R1 and R2 independently approve the identical candidate SHA and CI reaches terminal success — without returning to the founder for that instance. This is not self-approval: R1/R2 remain the same independent-review gate this rule already required, just without a human relaying their verdict. It does not extend to first release, new runtime scope, spending, credential entry, public deployment, consent questions, destructive/irreversible actions, or any material product decision — those remain founder-approval items per the table above. A platform-level tool-permission classifier controlling the maker's own merge invocation is separate from this authority grant and is never to be worked around; if it blocks a merge, the maker records the exact command and denial, leaves the PR open, and continues all other unrelated authorized work rather than retrying or circumventing it.
 
 ## Credentials and data
 

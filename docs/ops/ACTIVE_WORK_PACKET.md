@@ -1,18 +1,35 @@
 # Active Work Packet
 
+This file tracks status against the block IDs defined in the founder's
+`docs/roadmap/CAMPAIGNFORGE_EXECUTION_LEDGER.md` (D-023), which is the
+controlling execution plan. Prior ad-hoc names (`CF-RUN-001`,
+`CF-RUN-002`) map onto that ledger's blocks as noted below.
+
+## CF-00 — Repository and state reconciliation
+
+Status: `COMPLETE` as of this update (2026-07-21). Local `main` verified equal to remote at `e5b26eafd2917cd8bbfffa607f554195106c6a47`, then at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` after merging PR #6 (docs-only, CI green, mergeable, within already-granted documentation-synchronization authority — D-023). No other open PRs; no dirty working-tree changes found. The 84-test baseline was re-run and confirmed. The styled home and project pages were re-verified live through a running local server (`http://127.0.0.1:8734/`), never by opening raw template files. `docs/roadmap/CURRENT_ROADMAP.md` was annotated (not rewritten) to flag its contest-phase framing as not yet explicitly reconciled against the ledger's dad's-content-accuracy-first sequencing.
+
 ## CF-RUN-001 — Smallest real product flow: upload → analysis → persist → display
 
-Status: `MERGED` — approved as-is at exact SHA `1cb15c937422517657c3e85463df4e440a11bfb0` (76 tests passing locally and in CI) and merged into `main` at merge commit `c9ae8bb3926c2589043d8467244dc7f51586543f` with explicit founder confirmation (D-020). Its UI was subsequently refined in PR #5 (desktop layout width fix, restructured result display, accessibility fixes, 84 tests passing) merged at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (D-021). Not deployed; not live-verified. See `CF-RUN-002` below, now the active packet.
+Status: `MERGED` — approved as-is at exact SHA `1cb15c937422517657c3e85463df4e440a11bfb0` (76 tests passing locally and in CI) and merged into `main` at merge commit `c9ae8bb3926c2589043d8467244dc7f51586543f` with explicit founder confirmation (D-020). Its UI was subsequently refined in PR #5 (desktop layout width fix, restructured result display, accessibility fixes, 84 tests passing) merged at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (D-021). Not deployed; not live-verified. This is the concrete implementation that `CF-01`/`CF-02`/`CF-03` below now build on.
 
 ---
 
-## CF-RUN-002 — Wire real credentials, run the first live non-fabricated analysis
+## CF-01 — Credential readiness without secret exposure
 
 Classification: `RUNTIME`
 
-Consumer: the CampaignForge product itself. Dispatched directly per standing founder instruction to keep working continuously through bounded packets without waiting for a separately-formatted dispatch each time (D-022).
+Consumer: the CampaignForge product itself. This is the ledger's `CF-01` block (D-023), superseding the ad-hoc `CF-RUN-002` label (D-022) for the same substance.
 
 Status: `BLOCKED_ON_CREDENTIALS`. No further code change is required to unblock this packet — the full upload → analyze → persist → display flow (including honest blocking on every real GMI/network/contract failure mode) is already implemented, tested, and merged. This packet's only remaining action is external: the founder supplying real `GMI_API_KEY` and B2 credentials (exact instructions in `docs/ops/CURRENT_STATE.md`'s "Founder setup instruction").
+
+The ledger's `CF-01` also asks whether the provider can receive uploaded bytes directly, so B2 is not made a prerequisite merely because the current implementation assumes a URL. Researched 2026-07-21 (current official docs, re-fetched):
+
+- `nemotron-3-nano-omni`'s own quickstart page (`docs.gmicloud.ai/model-quickstarts/text/nvidia-nvidia-nemotron-3-nano-omni.md`) still does not document video input at all — no `video_url` schema, and its one `image_url` example uses an illustrative `file:///path/to/image.jpg` placeholder, not a real base64 or hosted-URL example.
+- A *different* model family on the same platform — GMI's video-*generation* API (`inference-engine/api-reference/video-api-reference.md`, e.g. `Veo3`) documents three real input mechanisms for file references: (1) an inline base64 data URI ("convenient for small files; large payloads may slow requests"), (2) a hosted `https://` URL, and (3) GMI's own two-step Upload API (request an upload URL, `PUT` raw bytes, get back a stable public URL) — a potential alternative to Backblaze B2 for getting a fetchable URL.
+- **It is unverified whether either mechanism (base64 data URI or GMI's own Upload API) extends to `nemotron-3-nano-omni`'s chat-completions endpoint**, since that model's own documentation is silent on video input entirely. Writing speculative code against an unconfirmed capability on the wrong model's documented pattern would violate the "cite current official docs, don't guess" standard (D-014) — so no code change is made on this basis alone.
+- **Practical effect on the founder instruction**: `docs/ops/CURRENT_STATE.md` is corrected below — it is not certain that B2 is required for the very first experiment. `GMI_API_KEY` alone may be sufficient if a small test video can be sent as a base64 data URI, but this is unverified and must be tested live, not assumed. B2 remains required by Product Canon for durable, restorable storage regardless of this experiment's outcome.
+- **Recommendation for `CF-02`'s two-attempt rule**: attempt (a) a small base64 data-URI `video_url` block first (costs nothing extra, needs no B2 setup) and (b) a real hosted URL (via B2 presigned URL or GMI's own Upload API) second, if (a) fails — this satisfies the ledger's "two materially different documented approaches before declaring `BLOCKED`" rule with an evidence-based plan rather than a guess.
 
 ### Founder intent and business outcome
 
@@ -22,7 +39,7 @@ Move from "the real analysis path is implemented and tested against mocked/contr
 
 - Repository: `BraxtonVance92/campaign-forge`
 - Base branch: `main`
-- Exact base SHA: `e5b26eafd2917cd8bbfffa607f554195106c6a47` (merge commit for PR #5)
+- Exact base SHA: `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (merge commit for PR #6 — updated from PR #5's `e5b26ea`, per R1/R2's shared non-blocking note on PR #7)
 - Branch: (to be created when credentials are supplied and this packet becomes actionable — no branch exists yet for this packet, since there is no code change to make ahead of that)
 
 ### Scope

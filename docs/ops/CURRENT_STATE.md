@@ -1,18 +1,18 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-21 (CF-RUN-001 merged; PR #5 UI refresh merged; CF-RUN-002 dispatched, blocked on credentials).
+Last updated: 2026-07-22 (PR #6 merged — CF-00 reconciliation/Execution Ledger adoption; PR #7 open, awaiting R1/R2 — CF-01 credential-readiness research; CF-01 remains blocked on credentials).
 
-## State: BLOCKED ON CREDENTIALS — CF-RUN-002 (first live, non-fabricated analysis)
+## State: BLOCKED ON CREDENTIALS — CF-01 (first live, non-fabricated analysis, per docs/roadmap/CAMPAIGNFORGE_EXECUTION_LEDGER.md)
 
-`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, and the PR #5 UI refresh are all `MERGED`. `main` is at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (merge commit for PR #5). The full upload → analyze → persist → display flow is implemented and tested end-to-end; the only remaining gap is that no real `GMI_API_KEY` or Backblaze B2 credentials are present in this environment, so every real analysis attempt honestly reports itself as blocked rather than fabricating a result. See "Blocker" and "Founder setup instruction" below for exactly what to do to unblock this.
+`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, the PR #5 UI refresh, and PR #6 (CF-00 reconciliation) are all `MERGED`. `main` is at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (merge commit for PR #6). PR #7 (CF-01 research: Execution Ledger adoption, direct-bytes research, this file's own contradiction fix) is open, CI-passing, awaiting R1/R2 exact-SHA review before merge. The full upload → analyze → persist → display flow is implemented and tested end-to-end; the only remaining gap is that no real `GMI_API_KEY` or Backblaze B2 credentials are present in this environment, so every real analysis attempt honestly reports itself as blocked rather than fabricating a result. See "Blocker" and "Founder setup instruction" below for exactly what to do to unblock this.
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `e5b26eafd2917cd8bbfffa607f554195106c6a47`.
-- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`.
-- CI on `main` post-merge: `SUCCESS` at `e5b26eafd2917cd8bbfffa607f554195106c6a47` (push-triggered run of `.github/workflows/cf-run-001-tests.yml`).
+- Main head SHA: `f201ba5fbca15326f81ef3605dd281c88f0d0f4b`.
+- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`. PR #6: `MERGED`. PR #7: `OPEN` (draft, CI passing, awaiting R1/R2).
+- CI on `main` post-merge: `SUCCESS` at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (https://github.com/BraxtonVance92/campaign-forge/actions/runs/29874473119).
 - The exact current candidate SHA for any future in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
 - `main` now contains the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, two workflows (`cf-verify-001.yml` — prepared, not executed; `cf-run-001-tests.yml` — real, passing), and the full `app/`/`tests/` runtime application described below, including the PR #5 UI refresh (desktop layout width fix, restructured result display, accessibility fixes).
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.
@@ -66,19 +66,21 @@ Unknown/zero. No paid provider call has been made in this repository's history. 
 
 ## Blocker
 
-`CF-RUN-002`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented, tested, and now merged to `main`. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret. Re-confirmed present-but-empty in this environment on 2026-07-21 (checked `.env` and the shell environment directly — no value found for any of the five variable names; only `.env.example`'s blank names exist).
+`CF-01`'s real analysis and real persistence both require credentials not present in this environment (`GMI_API_KEY`; `B2_KEY_ID`/`B2_APPLICATION_KEY`/`B2_BUCKET_NAME`/`B2_ENDPOINT`). Everything up to those external calls is implemented, tested, and now merged to `main`. Separately, `CF-VERIFY-001`'s live GMI test workflow remains unexecuted pending account funding (up to $20) and the `GMI_API_KEY` GitHub secret. Re-confirmed present-but-empty in this environment on 2026-07-21 (checked `.env` and the shell environment directly — no value found for any of the five variable names; only `.env.example`'s blank names exist).
 
 ### Founder setup instruction (exact, current as of 2026-07-21)
 
 No Render or other hosted deployment exists yet, so the only place these currently need to go is this repository's local `.env` file (already `.gitignore`d — never commit it):
 
 1. In the repo root, copy `.env.example` to `.env` if you have not already (`cp .env.example .env`).
-2. Set `GMI_API_KEY=` to your real GMI Cloud API key.
-3. Set all four B2 variables together — `B2_KEY_ID=`, `B2_APPLICATION_KEY=`, `B2_BUCKET_NAME=`, `B2_ENDPOINT=` — from your Backblaze B2 bucket's Application Key page. **Both credential sets are required together for a genuinely live analysis**, not just `GMI_API_KEY` alone: without B2, uploads fall back to local-disk storage, which cannot produce a real `https://` URL GMI's servers can fetch, so analysis will still honestly report itself blocked even with a valid GMI key.
+2. Set `GMI_API_KEY=` to your real GMI Cloud API key. **This alone may be enough for the very first small test** — see the correction below; B2 is the current code's requirement, not a confirmed GMI requirement.
+3. Set all four B2 variables together — `B2_KEY_ID=`, `B2_APPLICATION_KEY=`, `B2_BUCKET_NAME=`, `B2_ENDPOINT=` — from your Backblaze B2 bucket's Application Key page, if/when you want durable, restorable storage (Product Canon's long-term requirement regardless of this experiment).
 4. Restart the server so it re-reads the environment: `uvicorn app.main:app --reload`.
-5. Confirm both are recognized: open `http://127.0.0.1:8000/health` — it must show `"gmi_configured": true` and `"b2_configured": true`. Neither value is a real live-call test by itself, only a presence check.
-6. Confirm a real analysis actually runs: create a project, upload one authorized creator video, click "Run creator analysis." A rendered creator profile (not the "Analysis blocked" card) confirms the real call succeeded. Only at that point should `app.analysis.REQUEST_SHAPE_VERIFIED` be flipped to `True` (D-022) — never speculatively.
+5. Confirm what's recognized: open `http://127.0.0.1:8000/health` — `"gmi_configured": true` confirms the key is read; `"b2_configured": true` confirms B2 is read. Neither is a live-call test by itself, only a presence check.
+6. Confirm a real analysis actually runs: create a project, upload one authorized creator video, click "Run creator analysis." A rendered creator profile (not the "Analysis blocked" card) confirms the real call succeeded. Only at that point should `app.analysis.REQUEST_SHAPE_VERIFIED` be flipped to `True` (D-022/D-023) — never speculatively.
+
+**Correction (2026-07-21, `CF-01` research, `docs/ops/ACTIVE_WORK_PACKET.md`):** the *current code* requires both credential sets together, because `GMIAnalysisClient.analyze()` only accepts a `https://` `video_url` and local-disk-fallback storage can't produce one. But it is **unverified, not confirmed impossible**, that GMI's `nemotron-3-nano-omni` endpoint could accept a small video directly as a base64 data URI instead of a hosted URL — a pattern documented for a *different* GMI model family (video generation), not this one, so it is not assumed to work here without a live test. If you only have `GMI_API_KEY` and want to try the smallest possible experiment before setting up B2, say so — CF-02's live test is designed to try base64 first specifically because it needs no B2 setup, and only falls back to a hosted URL if that fails.
 
 ## Next safe action
 
-Controller/founder supplies the credentials per the instruction above (or explicitly declines/defers). Once supplied, wire them in and run the first real, live, non-fabricated analysis (`CF-RUN-002`, D-022), capturing sanitized evidence and flipping `REQUEST_SHAPE_VERIFIED`. Until then, the next dependent block (Genblaze generation leg) remains available to plan but not to build against real provider behavior.
+Controller/founder supplies the credentials per the instruction above (or explicitly declines/defers). Once supplied, wire them in and run `CF-02`/`CF-03` (the first real, live, non-fabricated analysis, per D-023), capturing sanitized evidence and flipping `REQUEST_SHAPE_VERIFIED`. Until then, the next dependent block (Genblaze generation leg) remains available to plan but not to build against real provider behavior.
