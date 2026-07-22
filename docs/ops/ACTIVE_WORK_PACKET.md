@@ -39,7 +39,7 @@ Move from "the real analysis path is implemented and tested against mocked/contr
 
 - Repository: `BraxtonVance92/campaign-forge`
 - Base branch: `main`
-- Exact base SHA: `e5b26eafd2917cd8bbfffa607f554195106c6a47` (merge commit for PR #5)
+- Exact base SHA: `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (merge commit for PR #6 — updated from PR #5's `e5b26ea`, per R1/R2's shared non-blocking note on PR #7)
 - Branch: (to be created when credentials are supplied and this packet becomes actionable — no branch exists yet for this packet, since there is no code change to make ahead of that)
 
 ### Scope
