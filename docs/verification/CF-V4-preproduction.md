@@ -120,6 +120,10 @@ render_method="<provider>-avatar-render+local-composite")` via
 
 ## Provider decision (current official docs/pricing, checked 2026-07-22)
 
+> **Note:** the GMI exclusion below is superseded in part — see the
+> COMPETITION CORRECTION section at the end of this document before
+> acting on anything in this section.
+
 ### GMI Cloud capability verdict
 
 GMI Cloud's Inference Engine resells avatar/voice models beyond its chat
@@ -317,6 +321,21 @@ B2 orchestration, and Genblaze use equally.
 
 ### Consolidated founder action (the one blocker)
 
+0. **Consent precondition (required by canon D-011 before anything is
+   uploaded anywhere):** persist Colton's own short recorded consent
+   statement — covering AI generation of his face/likeness and synthetic
+   cloning of his voice, the private CampaignForge testing purpose, that
+   publication is prohibited pending his approval, and his right to
+   revoke — as a new consent record in the app (same mechanism as
+   `f5a618d6…`). This is deliberately not a new ceremony: Colton already
+   has to personally record HeyGen's consent/verification statement, so
+   this one additional sentence can be captured in the same sitting and
+   uploaded once by the founder. The founder-attested authorization above
+   records the founder's word; canon (`FOUNDER_CANON.md` non-goals,
+   `DECISION_LOG.md` D-011) additionally requires the person's own
+   verified, recorded consent before cloning — and the GMI MiniMax voice
+   route and HeyGen photo-avatar route have no provider-side subject
+   verification of their own, so this artifact is the gate for them.
 1. Fund the GMI Cloud account with **$10** at console.gmicloud.ai
    (Credits & Coupons). Do not add more. Note: GMI publishes no
    media-retention/deletion policy for uploaded inference inputs, so
