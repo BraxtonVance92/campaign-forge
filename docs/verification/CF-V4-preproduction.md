@@ -285,14 +285,16 @@ through the real Genblaze SDK.
 | HeyGen inside the lineage | Genblaze custom step | Small `BaseProvider` subclass (`submit`/`poll`/`fetch_output`) wrapping HeyGen's API so the avatar render appears in the same canonical manifest, honestly labeled `provider=heygen` |
 | Storage & provenance | **Backblaze B2** via `ObjectStorageSink(S3StorageBackend.for_backblaze(...))` | reference inputs, GMI voice output, HeyGen render, final MP4, canonical SHA-256 manifest with parent/source lineage; app restores V4 through the existing project-scoped media route |
 
-Mixed-provider workflows are explicitly permitted by the official rules;
-judging weights Real-World Utility, Production Readiness, B2
-orchestration, and Genblaze use equally.
+Mixed-provider workflows are explicitly permitted by the official rules
+(third-party SDKs/APIs allowed with proper authorization; source:
+https://backblaze-generative-media.devpost.com/rules, retrieved
+2026-07-22); judging weights Real-World Utility, Production Readiness,
+B2 orchestration, and Genblaze use equally.
 
 ### Zero-cost verification already done (this packet, $0)
 
 - `genblaze==0.4.4`, `genblaze-core==0.3.7`, `genblaze-gmicloud==0.3.4`,
-  `genblaze-s3==0.3.6` installed and pinned in `requirements.txt`.
+  `genblaze-s3==0.3.6` installed; all four pinned in `requirements.txt`.
 - `tests/test_genblaze_v4_prep.py` (4 tests, network-guarded so any
   accidental call fails the test): clone model registered with the
   required params; adapter constructs offline; the exact planned voice
@@ -316,7 +318,12 @@ orchestration, and Genblaze use equally.
 ### Consolidated founder action (the one blocker)
 
 1. Fund the GMI Cloud account with **$10** at console.gmicloud.ai
-   (Credits & Coupons). Do not add more.
+   (Credits & Coupons). Do not add more. Note: GMI publishes no
+   media-retention/deletion policy for uploaded inference inputs, so
+   funding + proceeding constitutes founder acceptance of that
+   unpublished retention posture for Colton's reference audio sample;
+   we will additionally request deletion via GMI support after the run
+   and record the outcome in the receipt.
 2. Create/confirm a private B2 bucket and put bucket-scoped credentials
    in `.env` (`B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`,
    `B2_ENDPOINT`) — never pasted in chat.

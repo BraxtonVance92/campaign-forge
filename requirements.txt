@@ -15,4 +15,6 @@ faster-whisper==1.2.1
 # pinned to the versions the zero-cost prep tests were written against
 # (canon: "current released Genblaze packages pinned to tested versions").
 genblaze==0.4.4
+genblaze-core==0.3.7
+genblaze-s3==0.3.6
 genblaze-gmicloud==0.3.4

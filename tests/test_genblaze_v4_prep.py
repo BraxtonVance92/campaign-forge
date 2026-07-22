@@ -55,10 +55,11 @@ def test_gmi_audio_provider_constructs_offline_with_guarded_client():
 
 
 def test_v4_voice_pipeline_step_builds_without_network():
-    """The exact planned V4 voice step must be constructible (request
-    validation happens at build time for model/params) without submitting
-    anything: building a Pipeline with the clone step is free; only .run()
-    would submit, and it is deliberately never called here."""
+    """The exact planned V4 voice step must be constructible without
+    submitting anything. Note: .step() defers model preflight to .run(),
+    so what this test proves is exactly (a) the step builds and (b) zero
+    network traffic occurs; the params themselves are proven valid by the
+    registry test above, not by construction."""
     guard = _NetworkGuard()
     client = httpx.Client(transport=guard)
     provider = GMICloudAudioProvider(api_key="offline-test-placeholder", http_client=client)
