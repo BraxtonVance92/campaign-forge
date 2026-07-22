@@ -259,3 +259,71 @@ Optionally add: "and Colton will record the 2–5 min Digital Twin clip"
 for the quality upgrade; otherwise the photo-avatar route proceeds with
 existing material.
 
+---
+
+## COMPETITION CORRECTION (2026-07-22, supersedes the GMI exclusion above)
+
+The founder corrected course: CampaignForge is an active entry in the
+**Backblaze Generative AI Media Hackathon: Build with Genblaze**
+(deadline confirmed on the official Devpost rules: **August 3, 2026,
+5:00 p.m. ET**). This matches repository canon (`FOUNDER_CANON.md`
+"Contest facts that bind scope", `PRODUCT_CANON.md` "Genblaze must be
+load-bearing"), which pre-dates and outranks the GMI exclusion recorded
+above. The exclusion's *facts* stand (GMI publishes no media-retention
+policy; account was 402), but the *decision* is superseded: GMI is used
+for a genuine, load-bearing, non-HeyGen generation step, orchestrated
+through the real Genblaze SDK.
+
+### Contest-compliant V4 architecture
+
+| Role | System | Exact component |
+|---|---|---|
+| Colton's likeness + (default) his cloned voice | **HeyGen direct** (Creator plan) | Avatar IV photo avatar; HeyGen instant voice clone. Never attributed to GMI/Genblaze |
+| Genblaze-orchestrated GMI step (first choice) | **Genblaze → GMI Cloud** | `GMICloudAudioProvider`, model `minimax-audio-voice-clone-speech-2.6-hd` (registered first-class in `genblaze-gmicloud` 0.3.4 with `reference_audio` + `voice_id` + `prompt` params) — generates Colton's authorized synthetic narration used as the V4 audio track (HeyGen then lip-syncs to this audio, or HeyGen's own clone is the fallback voice if MiniMax output quality fails review) |
+| Fallback GMI step if voice fails | Genblaze → GMI | `GMICloudVideoProvider` B-roll (e.g. `seedance-1-0-pro-250528` or `wan2.6-t2v`) composited materially into V4 as the packet's supporting visuals |
+| Local compositing inside the manifest | Genblaze custom step | `FFmpegCompositor`-style `SyncProvider` step (mux avatar video + audio + captions/overlays) so the final MP4 is itself a manifest asset |
+| HeyGen inside the lineage | Genblaze custom step | Small `BaseProvider` subclass (`submit`/`poll`/`fetch_output`) wrapping HeyGen's API so the avatar render appears in the same canonical manifest, honestly labeled `provider=heygen` |
+| Storage & provenance | **Backblaze B2** via `ObjectStorageSink(S3StorageBackend.for_backblaze(...))` | reference inputs, GMI voice output, HeyGen render, final MP4, canonical SHA-256 manifest with parent/source lineage; app restores V4 through the existing project-scoped media route |
+
+Mixed-provider workflows are explicitly permitted by the official rules;
+judging weights Real-World Utility, Production Readiness, B2
+orchestration, and Genblaze use equally.
+
+### Zero-cost verification already done (this packet, $0)
+
+- `genblaze==0.4.4`, `genblaze-core==0.3.7`, `genblaze-gmicloud==0.3.4`,
+  `genblaze-s3==0.3.6` installed and pinned in `requirements.txt`.
+- `tests/test_genblaze_v4_prep.py` (4 tests, network-guarded so any
+  accidental call fails the test): clone model registered with the
+  required params; adapter constructs offline; the exact planned voice
+  pipeline step builds without network; B2 backend constructs with
+  `preflight=False`. Suite: 142 passed.
+- GMI credential re-verified non-chargeably: `GET /v1/models` → 200
+  (75 text models). Balance is console-visible only; last generation
+  attempt (CF-02) recorded HTTP 402 Insufficient balance.
+- Nothing of Colton's was uploaded anywhere; no V4 record exists.
+
+### Revised cost gate (contest path)
+
+| Item | Amount |
+|---|---|
+| Actual spend so far | **$0** |
+| HeyGen Creator, 1 month, monthly billing | $29 |
+| GMI top-up for MiniMax voice clone + speech + repairs + B-roll fallback | **$10** (docs show per-request/per-second pricing in cents; $10 covers many attempts; exact per-call rates are console-gated and will be recorded from provider evidence before each call) |
+| Backblaze B2 | ~$0 at this scale (MBs); requires bucket + bucket-scoped key |
+| **Maximum total exposure** | **≈$39–42 incl. tax** (ceiling $50; funding is not permission to spend it) |
+
+### Consolidated founder action (the one blocker)
+
+1. Fund the GMI Cloud account with **$10** at console.gmicloud.ai
+   (Credits & Coupons). Do not add more.
+2. Create/confirm a private B2 bucket and put bucket-scoped credentials
+   in `.env` (`B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`,
+   `B2_ENDPOINT`) — never pasted in chat.
+3. Approve: **"spend $29 for one month of HeyGen Creator (monthly
+   billing)"** — and have Colton personally complete HeyGen's consent /
+   voice-ownership verification when prompted (plus the optional 2–5 min
+   Digital Twin clip if the upgrade is wanted).
+
+No paid call, upload, or subscription happens until these are done.
+
