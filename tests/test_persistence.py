@@ -1,5 +1,13 @@
 from app import repository
-from app.models import AnalysisBlockedRecord, ConsentRecord, CreatorProfile, EvidenceItem, Project, SourceAsset
+from app.models import (
+    AnalysisBlockedRecord,
+    ConsentRecord,
+    CreatorProfile,
+    EvidenceItem,
+    ExtendedCreatorAnalysis,
+    Project,
+    SourceAsset,
+)
 from app.storage import InMemoryStorage
 from tests.conftest import make_fake_mp4_bytes
 
@@ -92,6 +100,61 @@ def test_analysis_result_round_trip_blocked_record():
 def test_analysis_result_none_when_not_yet_analyzed():
     storage = InMemoryStorage()
     assert repository.get_analysis_result(storage, "p1", "s1") is None
+
+
+def test_extended_analysis_round_trip():
+    storage = InMemoryStorage()
+    analysis = ExtendedCreatorAnalysis(
+        project_id="p1",
+        source_id="s1",
+        sections={"transcript": [{"start_seconds": 0.0, "end_seconds": 1.0, "text": "hi"}]},
+        analysis_provider="gmi-cloud",
+        analysis_model="test-model",
+        prompt_schema_version="cf-02-extended-v1",
+        source_asset_hash="hash",
+    )
+    repository.save_extended_analysis(storage, analysis)
+
+    loaded = repository.get_extended_analysis(storage, "p1", "s1")
+    assert isinstance(loaded, ExtendedCreatorAnalysis)
+    assert loaded.sections["transcript"][0]["text"] == "hi"
+    assert loaded.request_shape_verified is False
+
+
+def test_extended_analysis_blocked_record_round_trip():
+    storage = InMemoryStorage()
+    blocked = AnalysisBlockedRecord(
+        project_id="p1", source_id="s1", reason="GMI_API_KEY is not configured."
+    )
+    repository.save_extended_blocked_record(storage, blocked)
+
+    loaded = repository.get_extended_analysis(storage, "p1", "s1")
+    assert isinstance(loaded, AnalysisBlockedRecord)
+    assert loaded.status == "blocked"
+    assert "not configured" in loaded.reason
+
+
+def test_extended_analysis_none_when_not_yet_analyzed():
+    storage = InMemoryStorage()
+    assert repository.get_extended_analysis(storage, "p1", "s1") is None
+
+
+def test_extended_analysis_independent_of_narrow_profile_key():
+    """The extended analysis and the narrow CreatorProfile contract are
+    persisted under different keys -- saving one must not clobber or be
+    confused with the other, since a real project could in principle have
+    both from different tests/eras of this codebase."""
+    storage = InMemoryStorage()
+    profile = CreatorProfile(
+        project_id="p1", source_id="s1", audience="a",
+        content_pillars=["x"], evidence=[EvidenceItem(source_reference="0:01", observation="y")],
+        confidence=0.5, limitations=["z"], analysis_provider="gmi-cloud",
+        analysis_model="m", prompt_schema_version="v1", source_asset_hash="h",
+    )
+    repository.save_profile(storage, profile)
+
+    assert repository.get_extended_analysis(storage, "p1", "s1") is None
+    assert isinstance(repository.get_analysis_result(storage, "p1", "s1"), CreatorProfile)
 
 
 def test_data_survives_across_repository_calls_simulating_restore_after_refresh():

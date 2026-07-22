@@ -34,9 +34,9 @@
       <ol class="stepper" aria-label="Project progress">
         <li class="active"><span>1</span><div><strong>Source video</strong><small>{% if source is none %}Waiting for upload{% else %}Upload complete{% endif %}</small></div></li>
         <li class="step-line {% if source is not none %}filled{% endif %}"></li>
-        <li class="{% if source is not none %}active{% endif %}"><span>2</span><div><strong>AI analysis</strong><small>{% if result is none %}Not started{% elif result.status is defined and result.status == "blocked" %}Needs attention{% else %}Complete{% endif %}</small></div></li>
-        <li class="step-line {% if result is not none and not (result.status is defined and result.status == 'blocked') %}filled{% endif %}"></li>
-        <li class="{% if result is not none and not (result.status is defined and result.status == 'blocked') %}active{% endif %}"><span>3</span><div><strong>Creator profile</strong><small>{% if result is not none and not (result.status is defined and result.status == 'blocked') %}Ready{% else %}Pending{% endif %}</small></div></li>
+        <li class="{% if source is not none %}active{% endif %}"><span>2</span><div><strong>AI analysis</strong><small>{% if extended_result is none %}Not started{% elif extended_result.status is defined and extended_result.status == "blocked" %}Needs attention{% else %}Complete{% endif %}</small></div></li>
+        <li class="step-line {% if extended_result is not none and not (extended_result.status is defined and extended_result.status == 'blocked') %}filled{% endif %}"></li>
+        <li class="{% if extended_result is not none and not (extended_result.status is defined and extended_result.status == 'blocked') %}active{% endif %}"><span>3</span><div><strong>Creator profile</strong><small>{% if extended_result is not none and not (extended_result.status is defined and extended_result.status == 'blocked') %}Ready{% else %}Pending{% endif %}</small></div></li>
       </ol>
 
       {% if storage_backend != "b2" %}
@@ -83,64 +83,43 @@
         <details class="technical-details"><summary>Technical details</summary><dl><dt>SHA-256 checksum</dt><dd><code>{{ source.checksum_sha256 }}</code></dd><dt>Storage</dt><dd>{{ storage_backend }}</dd></dl></details>
       </section>
 
-      {% if result is none %}
+      {% macro render_value(value) %}{% if value is mapping %}<dl class="json-tree">{% for k, v in value.items() %}<dt>{{ k | replace('_', ' ') | title }}</dt><dd>{{ render_value(v) }}</dd>{% endfor %}</dl>{% elif value is string %}{{ value }}{% elif value is iterable %}{% if value | list %}<ul class="json-tree-list">{% for item in value %}<li>{{ render_value(item) }}</li>{% endfor %}</ul>{% else %}<span class="profile-empty">none identified</span>{% endif %}{% else %}{{ value }}{% endif %}{% endmacro %}
+
+      {% if extended_result is none %}
       <section class="content-card analysis-card">
-        <div class="section-heading"><span class="section-number">02</span><div><h2>Analyze this creator</h2><p>Find the audience, content pillars, hook patterns, and repeatable creative strengths in this video.</p></div></div>
-        <div class="analysis-preview"><div><span>◎</span><strong>Audience</strong></div><div><span>◈</span><strong>Content pillars</strong></div><div><span>↗</span><strong>Hook patterns</strong></div></div>
+        <div class="section-heading"><span class="section-number">02</span><div><h2>Analyze this creator</h2><p>Get a detailed, timestamped breakdown of speech, delivery, body language, structure, and studio setup.</p></div></div>
+        <div class="analysis-preview"><div><span>◎</span><strong>Transcript</strong></div><div><span>◈</span><strong>Delivery</strong></div><div><span>↗</span><strong>Structure</strong></div></div>
         <form action="/projects/{{ project.id }}/sources/{{ source.id }}/analyze" method="post" data-loading-text="Analyzing…"><button class="button button-primary" type="submit">Run creator analysis <span aria-hidden="true">✦</span></button></form>
       </section>
-      {% elif result.status is defined and result.status == "blocked" %}
+      {% elif extended_result.status is defined and extended_result.status == "blocked" %}
       <section class="content-card">
         <div class="section-heading"><span class="section-number warning">!</span><div><h2>Analysis needs attention</h2><p>The video is safe. The AI analysis could not start or finish.</p></div></div>
-        <aside class="notice notice-warning" role="alert"><span class="notice-icon">!</span><div><strong>Analysis blocked</strong><p>{{ result.reason }}</p></div></aside>
+        <aside class="notice notice-warning" role="alert"><span class="notice-icon">!</span><div><strong>Analysis blocked</strong><p>{{ extended_result.reason }}</p></div></aside>
         <p class="honesty-note">No result was invented. CampaignForge will only show a creator profile after a real analysis succeeds.</p>
         <form action="/projects/{{ project.id }}/sources/{{ source.id }}/analyze" method="post" data-loading-text="Retrying…"><button class="button button-primary button-fit" type="submit">Try analysis again <span aria-hidden="true">↻</span></button></form>
       </section>
       {% else %}
       <section class="content-card results-card">
-        <div class="section-heading"><span class="section-number complete">✓</span><div><h2>Your creator profile</h2><p>Patterns found in the authorized source video.</p></div><span class="badge badge-success">Analyzed</span></div>
-        {% if not result.request_shape_verified %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Experimental analysis</strong><p>This result came from an integration that still needs live request-shape verification. Treat it as directional, not final.</p></div></aside>{% endif %}
+        <div class="section-heading"><span class="section-number complete">✓</span><div><h2>Detailed creator analysis</h2><p>Real, timestamped observations from the authorized source video.</p></div><span class="badge badge-success">Analyzed</span></div>
+        {% if extended_result.analysis_provider == "local-fallback-pipeline" %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Local fallback analysis, not GMI</strong><p>GMI Cloud could not produce a result for this video (see the failed-attempts section below), so this analysis was produced by a local pipeline instead: real audio transcription plus direct visual review of extracted frames. Treat it as directional, not final, and see the accuracy notes section for known gaps.</p></div></aside>
+        {% elif not extended_result.request_shape_verified %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Experimental analysis</strong><p>This result came from an integration that still needs live request-shape verification. Treat it as directional, not final.</p></div></aside>{% endif %}
 
-        <div class="profile-summary" aria-label="Creator summary">
-          <div class="summary-stat"><span>Audience</span><strong>{{ result.audience }}</strong></div>
-          <div class="summary-stat confidence"><span>Confidence</span><strong>{{ result.confidence }}</strong></div>
-        </div>
-
-        <div class="profile-sections">
-          <article class="profile-section">
-            <h3><span class="result-icon" aria-hidden="true">◈</span>Content patterns</h3>
-            {% set patterns = result.content_pillars + result.structure_patterns %}
-            {% if patterns %}<div class="tag-list">{% for item in patterns %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
-          </article>
-          <article class="profile-section">
-            <h3><span class="result-icon" aria-hidden="true">♪</span>Tone</h3>
-            {% if result.voice_traits %}<div class="tag-list">{% for item in result.voice_traits %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
-          </article>
-          <article class="profile-section">
-            <h3><span class="result-icon" aria-hidden="true">↗</span>Hooks</h3>
-            {% if result.hook_patterns %}<div class="tag-list">{% for item in result.hook_patterns %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
-          </article>
-          <article class="profile-section">
-            <h3><span class="result-icon" aria-hidden="true">◐</span>Visual style</h3>
-            {% if result.visual_patterns %}<div class="tag-list">{% for item in result.visual_patterns %}<span>{{ item }}</span>{% endfor %}</div>{% else %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
-          </article>
+        <div class="profile-sections extended-sections">
+          {% for key, value in extended_result.sections.items() %}
           <article class="profile-section full">
-            <h3><span class="result-icon" aria-hidden="true">✦</span>Recommendations</h3>
-            {% if result.cta_patterns %}<p class="rec-label">Calls to action that work</p><div class="tag-list">{% for item in result.cta_patterns %}<span>{{ item }}</span>{% endfor %}</div>{% endif %}
-            {% if result.avoid %}<p class="rec-label rec-avoid">Avoid</p><div class="tag-list">{% for item in result.avoid %}<span class="tag-avoid">{{ item }}</span>{% endfor %}</div>{% endif %}
-            {% if not result.cta_patterns and not result.avoid %}<p class="profile-empty">Not identified in this analysis.</p>{% endif %}
+            <h3><span class="result-icon" aria-hidden="true">▤</span>{{ key | replace('_', ' ') | title }}</h3>
+            {{ render_value(value) }}
           </article>
+          {% endfor %}
         </div>
-
-        {% if result.limitations %}<div class="limitations"><strong>Keep in mind</strong><ul>{% for item in result.limitations %}<li>{{ item }}</li>{% endfor %}</ul></div>{% endif %}
 
         <details class="technical-details">
           <summary>Analysis details</summary>
           <dl>
-            <dt>Provider</dt><dd>{{ result.analysis_provider }}</dd>
-            <dt>Model</dt><dd>{{ result.analysis_model }}</dd>
-            <dt>Schema version</dt><dd>{{ result.prompt_schema_version }}</dd>
-            <dt>Source hash</dt><dd><code>{{ result.source_asset_hash }}</code></dd>
+            <dt>Provider</dt><dd>{{ extended_result.analysis_provider }}</dd>
+            <dt>Model</dt><dd>{{ extended_result.analysis_model }}</dd>
+            <dt>Schema version</dt><dd>{{ extended_result.prompt_schema_version }}</dd>
+            <dt>Source hash</dt><dd><code>{{ extended_result.source_asset_hash }}</code></dd>
           </dl>
         </details>
       </section>

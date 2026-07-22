@@ -271,6 +271,274 @@ def test_analyze_blocked_on_contract_validation_failure(monkeypatch):
         )
 
 
+def test_analyze_attempts_base64_fallback_when_bytes_supplied(monkeypatch):
+    """When no hosted HTTPS URL is available but the caller supplies raw
+    bytes (e.g. local-disk-fallback storage), analyze() must attempt a
+    base64 data-URI request instead of blocking outright -- see CF-01's
+    research in docs/ops/ACTIVE_WORK_PACKET.md. This proves the request
+    is actually built with the data: URI, not that GMI accepts it (that
+    remains unverified until a real live call is made)."""
+    import base64 as _base64
+    import httpx
+
+    sent = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": __import__("json").dumps(VALID_FIXTURE)}}]}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        sent["payload"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    video_bytes = b"fake-small-video-bytes"
+    profile = _client_with_key().analyze(
+        project_id="p1", source_id="s1",
+        video_url="local-disk-fallback://projects/p1/sources/s1/original/clip.mp4",
+        source_asset_hash="x",
+        video_bytes=video_bytes,
+        video_content_type="video/mp4",
+    )
+    assert profile.audience == VALID_FIXTURE["audience"]
+    sent_url = sent["payload"]["messages"][0]["content"][1]["video_url"]["url"]
+    assert sent_url.startswith("data:video/mp4;base64,")
+    assert _base64.b64encode(video_bytes).decode("ascii") in sent_url
+
+
+def test_analyze_blocked_when_bytes_exceed_data_uri_cap():
+    """A video too large for the conservative base64 fallback cap must
+    block honestly rather than send an oversized, unverified request."""
+    import app.analysis as analysis_module
+
+    oversized = b"x" * (analysis_module.MAX_DATA_URI_BYTES + 1)
+    with pytest.raises(AnalysisBlockedError, match="exceeds the"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="local-disk-fallback://projects/p1/sources/s1/original/clip.mp4",
+            source_asset_hash="x",
+            video_bytes=oversized,
+            video_content_type="video/mp4",
+        )
+
+
+def test_analyze_blocked_on_network_timeout(monkeypatch):
+    """httpx.TimeoutException is a subclass of httpx.RequestError -- must
+    surface as the same honest AnalysisBlockedError, not an unhandled
+    exception or a hang."""
+    import httpx
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        raise httpx.TimeoutException("timed out")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    with pytest.raises(AnalysisBlockedError, match="Network error contacting GMI"):
+        _client_with_key().analyze(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+# --- analyze_extended(): the CF-02 founder-directed rich analysis path ---
+
+
+def _extended_client_with_key():
+    settings = Settings(
+        gmi_api_key="test-key-not-real", b2_key_id=None, b2_application_key=None,
+        b2_bucket_name=None, b2_endpoint=None,
+    )
+    return GMIAnalysisClient(settings)
+
+
+EXTENDED_FIXTURE = {
+    "transcript": [{"start_seconds": 0.0, "end_seconds": 2.0, "text": "hey what's up"}],
+    "voice_and_delivery": {"speaking_speed": "fast"},
+}
+
+
+def test_analyze_extended_blocked_when_gmi_key_absent():
+    settings = Settings(
+        gmi_api_key=None, b2_key_id=None, b2_application_key=None,
+        b2_bucket_name=None, b2_endpoint=None,
+    )
+    with pytest.raises(AnalysisBlockedError, match="GMI_API_KEY is not configured"):
+        GMIAnalysisClient(settings).analyze_extended(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_extended_blocked_when_no_url_and_no_bytes():
+    with pytest.raises(AnalysisBlockedError, match="no local bytes were supplied"):
+        _extended_client_with_key().analyze_extended(
+            project_id="p1", source_id="s1",
+            video_url="local-disk-fallback://projects/p1/sources/s1/original/clip.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_extended_blocked_when_bytes_exceed_data_uri_cap():
+    import app.analysis as analysis_module
+
+    oversized = b"x" * (analysis_module.MAX_DATA_URI_BYTES + 1)
+    with pytest.raises(AnalysisBlockedError, match="exceeds the"):
+        _extended_client_with_key().analyze_extended(
+            project_id="p1", source_id="s1",
+            video_url="local-disk-fallback://projects/p1/sources/s1/original/clip.mp4",
+            source_asset_hash="x",
+            video_bytes=oversized,
+            video_content_type="video/mp4",
+        )
+
+
+def test_analyze_extended_success_path_with_mocked_gmi_response(monkeypatch):
+    """Proves the extended client -> ExtendedCreatorAnalysis path end to
+    end using a mocked HTTP layer. NOT a live call -- see
+    docs/verification/CF-02-experiment-receipt.md for the real, live
+    result (blocked: model not deployed on this account)."""
+    import base64 as _base64
+    import httpx
+
+    sent = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": __import__("json").dumps(EXTENDED_FIXTURE)}}]}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        sent["payload"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    video_bytes = b"fake-small-video-bytes"
+    result = _extended_client_with_key().analyze_extended(
+        project_id="p1", source_id="s1",
+        video_url="local-disk-fallback://projects/p1/sources/s1/original/clip.mp4",
+        source_asset_hash="deadbeef",
+        video_bytes=video_bytes,
+        video_content_type="video/mp4",
+    )
+    assert result.sections == EXTENDED_FIXTURE
+    assert result.source_asset_hash == "deadbeef"
+    assert result.request_shape_verified is False
+    sent_url = sent["payload"]["messages"][0]["content"][1]["video_url"]["url"]
+    assert sent_url.startswith("data:video/mp4;base64,")
+    assert _base64.b64encode(video_bytes).decode("ascii") in sent_url
+
+
+def test_analyze_extended_blocked_on_http_error_status(monkeypatch):
+    import httpx
+
+    class FakeErrorResponse:
+        status_code = 404
+
+        def raise_for_status(self):
+            raise httpx.HTTPStatusError("Not Found", request=None, response=self)
+
+        def json(self):
+            raise AssertionError("json() should not be called after raise_for_status fails")
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeErrorResponse())
+
+    with pytest.raises(AnalysisBlockedError, match="HTTP 404") as exc_info:
+        _extended_client_with_key().analyze_extended(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+    assert "target server" not in str(exc_info.value)  # raw provider body never surfaces
+
+
+def test_analyze_extended_blocked_on_network_error(monkeypatch):
+    import httpx
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: (_ for _ in ()).throw(httpx.ConnectError("refused")))
+
+    with pytest.raises(AnalysisBlockedError, match="Network error contacting GMI"):
+        _extended_client_with_key().analyze_extended(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_extended_blocked_on_malformed_json_content(monkeypatch):
+    import httpx
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "not valid json {{{"}}]}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeResponse())
+
+    with pytest.raises(AnalysisBlockedError, match="not in the expected shape"):
+        _extended_client_with_key().analyze_extended(
+            project_id="p1", source_id="s1",
+            video_url="https://example-bucket.example.com/video.mp4",
+            source_asset_hash="x",
+        )
+
+
+def test_analyze_extended_blocked_on_non_dict_response():
+    """A response that parses as valid JSON but isn't an object (e.g. a
+    bare list or string) must block honestly, not be persisted as if it
+    were real structured sections."""
+    import httpx
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "[1, 2, 3]"}}]}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return FakeResponse()
+
+    import unittest.mock
+    with unittest.mock.patch.object(httpx, "post", fake_post):
+        with pytest.raises(AnalysisBlockedError, match="not a non-empty object"):
+            _extended_client_with_key().analyze_extended(
+                project_id="p1", source_id="s1",
+                video_url="https://example-bucket.example.com/video.mp4",
+                source_asset_hash="x",
+            )
+
+
+def test_analyze_extended_blocked_on_empty_dict_response():
+    import httpx
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "{}"}}]}
+
+    import unittest.mock
+    with unittest.mock.patch.object(httpx, "post", lambda *a, **k: FakeResponse()):
+        with pytest.raises(AnalysisBlockedError, match="not a non-empty object"):
+            _extended_client_with_key().analyze_extended(
+                project_id="p1", source_id="s1",
+                video_url="https://example-bucket.example.com/video.mp4",
+                source_asset_hash="x",
+            )
+
+
 def test_analyze_blocked_on_missing_required_field(monkeypatch):
     """A response missing a directly-indexed required field (e.g.
     'audience') raises KeyError inside parse_creator_profile, not

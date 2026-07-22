@@ -9,7 +9,14 @@ from __future__ import annotations
 
 import json
 
-from app.models import AnalysisBlockedRecord, ConsentRecord, CreatorProfile, Project, SourceAsset
+from app.models import (
+    AnalysisBlockedRecord,
+    ConsentRecord,
+    CreatorProfile,
+    ExtendedCreatorAnalysis,
+    Project,
+    SourceAsset,
+)
 from app.storage import DEFAULT_PRESIGNED_URL_EXPIRES_SECONDS, StorageBackend
 
 
@@ -31,6 +38,10 @@ def source_original_key(project_id: str, source_id: str, filename: str) -> str:
 
 def _profile_key(project_id: str, source_id: str) -> str:
     return f"projects/{project_id}/sources/{source_id}/profile.json"
+
+
+def _extended_analysis_key(project_id: str, source_id: str) -> str:
+    return f"projects/{project_id}/sources/{source_id}/extended_analysis.json"
 
 
 def save_project(storage: StorageBackend, project: Project) -> None:
@@ -118,6 +129,34 @@ def save_blocked_record(storage: StorageBackend, record: AnalysisBlockedRecord) 
         record.model_dump_json().encode("utf-8"),
         "application/json",
     )
+
+
+def save_extended_analysis(storage: StorageBackend, analysis: ExtendedCreatorAnalysis) -> None:
+    storage.put_object(
+        _extended_analysis_key(analysis.project_id, analysis.source_id),
+        analysis.model_dump_json().encode("utf-8"),
+        "application/json",
+    )
+
+
+def save_extended_blocked_record(storage: StorageBackend, record: AnalysisBlockedRecord) -> None:
+    storage.put_object(
+        _extended_analysis_key(record.project_id, record.source_id),
+        record.model_dump_json().encode("utf-8"),
+        "application/json",
+    )
+
+
+def get_extended_analysis(
+    storage: StorageBackend, project_id: str, source_id: str
+) -> ExtendedCreatorAnalysis | AnalysisBlockedRecord | None:
+    key = _extended_analysis_key(project_id, source_id)
+    if not storage.exists(key):
+        return None
+    raw = json.loads(storage.get_object(key))
+    if raw.get("status") == "blocked":
+        return AnalysisBlockedRecord.model_validate(raw)
+    return ExtendedCreatorAnalysis.model_validate(raw)
 
 
 def get_analysis_result(

@@ -64,8 +64,8 @@ def test_analyze_without_gmi_key_persists_and_displays_honest_blocked_state(clie
     json_resp = client.get(f"/projects/{project_id}/sources/{source_id}")
     assert json_resp.status_code == 200
     body = json_resp.json()
-    assert body["analysis_result"]["status"] == "blocked"
-    assert "GMI_API_KEY is not configured" in body["analysis_result"]["reason"]
+    assert body["extended_analysis_result"]["status"] == "blocked"
+    assert "GMI_API_KEY is not configured" in body["extended_analysis_result"]["reason"]
 
     html_resp = client.get(f"/projects/{project_id}")
     assert "blocked" in html_resp.text
@@ -74,6 +74,80 @@ def test_analyze_without_gmi_key_persists_and_displays_honest_blocked_state(clie
     # result. Copy wording changed with the UI refresh; the guarantee
     # (explicit statement that nothing was invented) must still hold.
     assert "No result was invented" in html_resp.text
+
+
+def test_full_flow_real_route_persists_and_displays_extended_analysis(monkeypatch):
+    """End-to-end through the real routes (not just unit-level): upload,
+    a mocked-but-real HTTP-shaped analyze call, persistence, and display
+    -- proving the whole wire survives, not just GMIAnalysisClient in
+    isolation. GMI itself is mocked here (no real credential in the test
+    environment); the actual live call and its real (blocked) outcome are
+    recorded separately in docs/verification/CF-02-experiment-receipt.md.
+    """
+    import json as _json
+
+    import httpx
+    from fastapi.testclient import TestClient
+
+    from app.config import Settings
+    from app.main import app
+    from app.routes import projects as projects_routes
+    from app.storage import InMemoryStorage
+
+    configured_settings = Settings(
+        gmi_api_key="test-key-not-real", b2_key_id=None, b2_application_key=None,
+        b2_bucket_name=None, b2_endpoint=None,
+    )
+    fixture = {"transcript": [{"start_seconds": 0.0, "end_seconds": 1.0, "text": "hi there"}]}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": _json.dumps(fixture)}}]}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: FakeResponse())
+
+    storage = InMemoryStorage()
+    app.dependency_overrides[projects_routes.get_storage] = lambda: storage
+    app.dependency_overrides[projects_routes.get_settings] = lambda: configured_settings
+    try:
+        with TestClient(app) as real_client:
+            project_id = create_project(real_client)
+            upload_source(real_client, project_id)
+
+            view = real_client.get(f"/projects/{project_id}")
+            import re
+            match = re.search(r'/projects/[^/]+/sources/([^/"]+)/analyze', view.text)
+            source_id = match.group(1)
+
+            analyze_resp = real_client.post(
+                f"/projects/{project_id}/sources/{source_id}/analyze", follow_redirects=False
+            )
+            assert analyze_resp.status_code == 303
+
+            # JSON API reflects the real persisted result.
+            json_resp = real_client.get(f"/projects/{project_id}/sources/{source_id}")
+            body = json_resp.json()
+            assert body["extended_analysis_result"]["sections"] == fixture
+            assert "status" not in body["extended_analysis_result"]  # not a blocked record
+
+            # The website shows it too, organized -- not a raw JSON dump.
+            html = real_client.get(f"/projects/{project_id}").text
+            assert "Transcript" in html
+            assert "hi there" in html
+            assert '{"transcript"' not in html  # not dumped as raw JSON text
+
+            # "Restart" simulation: a fresh TestClient context, same storage
+            # instance, proves persistence survives process boundaries in
+            # this architecture (see test_persistence.py for the repository-
+            # level version of this same guarantee).
+        with TestClient(app) as reloaded_client:
+            html_after_restart = reloaded_client.get(f"/projects/{project_id}").text
+            assert "hi there" in html_after_restart
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_source_json_endpoint_404_for_unknown_source(client):
