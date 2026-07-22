@@ -11,6 +11,7 @@ import json
 
 from app.models import (
     AnalysisBlockedRecord,
+    AnalysisRun,
     ConsentRecord,
     CreatorProfile,
     ExtendedCreatorAnalysis,
@@ -59,6 +60,31 @@ def generated_video_file_key(project_id: str, source_id: str, filename: str) -> 
     return f"projects/{project_id}/sources/{source_id}/generated/{filename}"
 
 
+def _analysis_run_key(project_id: str, source_id: str) -> str:
+    return f"projects/{project_id}/sources/{source_id}/analysis_run.json"
+
+
+def analysis_frame_key(project_id: str, source_id: str, run_id: str, index: int) -> str:
+    return f"projects/{project_id}/sources/{source_id}/analysis/{run_id}/frame_{index:02d}.jpg"
+
+
+def save_analysis_run(storage: StorageBackend, run: AnalysisRun) -> None:
+    storage.put_object(
+        _analysis_run_key(run.project_id, run.source_id),
+        run.model_dump_json().encode("utf-8"),
+        "application/json",
+    )
+
+
+def get_analysis_run(
+    storage: StorageBackend, project_id: str, source_id: str
+) -> AnalysisRun | None:
+    key = _analysis_run_key(project_id, source_id)
+    if not storage.exists(key):
+        return None
+    return AnalysisRun.model_validate_json(storage.get_object(key))
+
+
 def save_project(storage: StorageBackend, project: Project) -> None:
     storage.put_object(
         _project_key(project.id),
@@ -80,6 +106,13 @@ def save_consent(storage: StorageBackend, consent: ConsentRecord) -> None:
         consent.model_dump_json().encode("utf-8"),
         "application/json",
     )
+
+
+def get_consent(storage: StorageBackend, project_id: str, consent_id: str) -> ConsentRecord | None:
+    key = _consent_key(project_id, consent_id)
+    if not storage.exists(key):
+        return None
+    return ConsentRecord.model_validate_json(storage.get_object(key))
 
 
 def save_source(

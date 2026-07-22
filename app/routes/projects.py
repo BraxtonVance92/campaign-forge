@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
-from app import repository
+from app import pipeline, repository
 from app.analysis import AnalysisBlockedError, GMIAnalysisClient
 from app.config import Settings, load_settings
 from app.models import (
@@ -200,6 +200,40 @@ def get_source_json(
     )
 
 
+@router.post("/projects/{project_id}/sources/{source_id}/pipeline-analyze")
+def start_pipeline_analysis(
+    project_id: str,
+    source_id: str,
+    storage: StorageBackend = Depends(get_storage),
+):
+    """Run the CF-04 local analysis pipeline for this source. Synchronous
+    (consistent with this app's other actions); per-stage state is
+    persisted as it progresses, so an interrupted run leaves an honest
+    partial state. Rejections (missing source/consent, duplicate run)
+    surface as HTTP errors without persisting a run."""
+    try:
+        pipeline.run_analysis(storage, project_id, source_id)
+    except pipeline.PipelineRejected as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+
+
+@router.get("/projects/{project_id}/sources/{source_id}/analysis-frame/{index}")
+def get_analysis_frame(
+    project_id: str,
+    source_id: str,
+    index: int,
+    storage: StorageBackend = Depends(get_storage),
+):
+    """Serve one sampled evidence frame. The frame is looked up from the
+    persisted run's own frame list (never from a client-supplied path)."""
+    run = repository.get_analysis_run(storage, project_id, source_id)
+    if run is None or index < 0 or index >= len(run.frames):
+        raise HTTPException(status_code=404, detail="No such analysis frame.")
+    frame = run.frames[index]
+    return Response(content=storage.get_object(frame.storage_key), media_type="image/jpeg")
+
+
 @router.get("/projects/{project_id}/sources/{source_id}/generated-video")
 def get_generated_video(
     project_id: str,
@@ -235,12 +269,14 @@ def view_project(
     result = None
     extended_result = None
     generated_videos = []
+    analysis_run = None
     if project.id:
         source = _find_existing_source(storage, project_id)
         if source is not None:
             result = repository.get_analysis_result(storage, project_id, source.id)
             extended_result = repository.get_extended_analysis(storage, project_id, source.id)
             generated_videos = repository.list_generated_video_records(storage, project_id, source.id)
+            analysis_run = repository.get_analysis_run(storage, project_id, source.id)
 
     return templates.TemplateResponse(
         request,
@@ -251,6 +287,7 @@ def view_project(
             "result": result,
             "extended_result": extended_result,
             "generated_videos": generated_videos,
+            "analysis_run": analysis_run,
             "storage_backend": storage.name,
         },
     )

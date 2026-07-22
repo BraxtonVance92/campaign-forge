@@ -14,14 +14,20 @@ from tests.test_upload_validation import create_project
 
 
 def _render_project_page(
-    project, source, extended_result, storage_backend="in-memory-fake", generated_video=None
+    project,
+    source,
+    extended_result,
+    storage_backend="in-memory-fake",
+    generated_videos=(),
+    analysis_run=None,
 ):
     template = templates.get_template("project.html")
     return template.render(
         project=project,
         source=source,
         extended_result=extended_result,
-        generated_video=generated_video,
+        generated_videos=list(generated_videos),
+        analysis_run=analysis_run,
         storage_backend=storage_backend,
     )
 

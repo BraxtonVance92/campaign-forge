@@ -143,7 +143,8 @@ def _render_with_videos(generated_videos):
     )
     return templates.get_template("project.html").render(
         project=project, source=source, result=None, extended_result=None,
-        generated_videos=generated_videos, storage_backend="in-memory-fake",
+        generated_videos=generated_videos, analysis_run=None,
+        storage_backend="in-memory-fake",
     )
 
 
