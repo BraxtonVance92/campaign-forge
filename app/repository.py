@@ -46,7 +46,13 @@ def _extended_analysis_key(project_id: str, source_id: str) -> str:
 
 
 def _generated_video_record_key(project_id: str, source_id: str) -> str:
+    # Legacy single-record key (first CF-03 animatic); superseded by the
+    # list key below but still read for migration so V1 is never lost.
     return f"projects/{project_id}/sources/{source_id}/generated_video.json"
+
+
+def _generated_videos_list_key(project_id: str, source_id: str) -> str:
+    return f"projects/{project_id}/sources/{source_id}/generated_videos.json"
 
 
 def generated_video_file_key(project_id: str, source_id: str, filename: str) -> str:
@@ -171,21 +177,48 @@ def get_extended_analysis(
 def save_generated_video(
     storage: StorageBackend, record: GeneratedVideoRecord, video_bytes: bytes
 ) -> None:
+    """Append a generated-video version. Prior versions are preserved --
+    saving a V2 never overwrites or hides V1."""
     storage.put_object(record.storage_key, video_bytes, record.content_type)
+    records = list_generated_video_records(storage, record.project_id, record.source_id)
+    records = [r for r in records if r.id != record.id]
+    records.append(record)
     storage.put_object(
-        _generated_video_record_key(record.project_id, record.source_id),
-        record.model_dump_json().encode("utf-8"),
+        _generated_videos_list_key(record.project_id, record.source_id),
+        json.dumps([json.loads(r.model_dump_json()) for r in records]).encode("utf-8"),
         "application/json",
     )
 
 
-def get_generated_video_record(
+def list_generated_video_records(
     storage: StorageBackend, project_id: str, source_id: str
+) -> list[GeneratedVideoRecord]:
+    """All versions, oldest first. Falls back to (and migrates from) the
+    legacy single-record key so the first animatic persisted before
+    versioning existed is still listed."""
+    list_key = _generated_videos_list_key(project_id, source_id)
+    if storage.exists(list_key):
+        raw = json.loads(storage.get_object(list_key))
+        return [GeneratedVideoRecord.model_validate(item) for item in raw]
+    legacy_key = _generated_video_record_key(project_id, source_id)
+    if storage.exists(legacy_key):
+        return [GeneratedVideoRecord.model_validate_json(storage.get_object(legacy_key))]
+    return []
+
+
+def get_generated_video_record(
+    storage: StorageBackend, project_id: str, source_id: str, video_id: str | None = None
 ) -> GeneratedVideoRecord | None:
-    key = _generated_video_record_key(project_id, source_id)
-    if not storage.exists(key):
+    """A specific version by id, or the latest when no id is given."""
+    records = list_generated_video_records(storage, project_id, source_id)
+    if not records:
         return None
-    return GeneratedVideoRecord.model_validate_json(storage.get_object(key))
+    if video_id is None:
+        return records[-1]
+    for r in records:
+        if r.id == video_id:
+            return r
+    return None
 
 
 def get_analysis_result(

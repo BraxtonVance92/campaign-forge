@@ -125,23 +125,28 @@
       </section>
       {% endif %}
 
-      {% if generated_video is not none %}
+      {% if generated_videos %}
       <section class="content-card">
-        <div class="section-heading"><span class="section-number">03</span><div><h2>Generated {{ generated_video.kind }}</h2><p>A first content experiment built from this project's real analysis.</p></div><span class="badge">{{ generated_video.kind | upper }}</span></div>
-        <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>This is {% if generated_video.kind == "animatic" %}an{% else %}a{% endif %} {{ generated_video.kind }}, not a finished video{% if not generated_video.likeness_used %} — no real likeness is used{% endif %}</strong><p>{% if generated_video.narration_kind == "synthetic-generic-tts" %}The narration is a clearly generic synthetic text-to-speech voice with no relation to the creator's real voice — used because no voice-clone consent exists yet.{% elif generated_video.narration_kind == "none" %}This video has no narration.{% elif generated_video.narration_kind == "original-recording" %}The audio is the creator's original recording.{% else %}The narration uses an authorized voice clone.{% endif %} Visuals are storyboard graphics, not real footage.</p></div></aside>
-        <video controls preload="metadata" style="width:100%;max-width:360px;border-radius:12px;display:block;margin:16px auto;" src="/projects/{{ project.id }}/sources/{{ generated_video.source_id }}/generated-video"></video>
-        <details class="technical-details">
-          <summary>Render details</summary>
-          <dl>
-            <dt>Kind</dt><dd>{{ generated_video.kind }}</dd>
-            <dt>Narration</dt><dd>{{ generated_video.narration_kind }}</dd>
-            <dt>Likeness used</dt><dd>{{ generated_video.likeness_used }}</dd>
-            <dt>Duration</dt><dd>{{ generated_video.duration_seconds }}s</dd>
-            <dt>Dimensions</dt><dd>{{ generated_video.width }}x{{ generated_video.height }}</dd>
-            <dt>Render method</dt><dd>{{ generated_video.render_method }}</dd>
-            <dt>File hash</dt><dd><code>{{ generated_video.checksum_sha256 }}</code></dd>
-          </dl>
-        </details>
+        <div class="section-heading"><span class="section-number">03</span><div><h2>Generated video experiments</h2><p>Content experiments built from this project's real analysis, oldest to newest.</p></div><span class="badge">{{ generated_videos | length }} VERSION{{ "S" if generated_videos | length != 1 else "" }}</span></div>
+        <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>These are animatics/storyboards, not finished videos — no real likeness is used in any of them</strong><p>Narration is a clearly generic synthetic text-to-speech voice with no relation to the creator's real voice — used because no voice-clone consent exists yet. Visuals are storyboard graphics, not real footage.</p></div></aside>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;margin:16px 0;">
+          {% for gv in generated_videos %}
+          <div style="flex:1;min-width:260px;max-width:330px;">
+            <p style="text-align:center;font-weight:600;margin:0 0 8px;">V{{ loop.index }} — {{ gv.kind }}<br><small style="color:#9aa0ab;">{{ gv.duration_seconds }}s · {{ gv.width }}x{{ gv.height }}</small></p>
+            <video controls preload="metadata" style="width:100%;border-radius:12px;display:block;" src="/projects/{{ project.id }}/sources/{{ gv.source_id }}/generated-video?video_id={{ gv.id }}"></video>
+            <details class="technical-details">
+              <summary>Render details</summary>
+              <dl>
+                <dt>Kind</dt><dd>{{ gv.kind }}</dd>
+                <dt>Narration</dt><dd>{{ gv.narration_kind }}</dd>
+                <dt>Likeness used</dt><dd>{{ gv.likeness_used }}</dd>
+                <dt>Render method</dt><dd>{{ gv.render_method }}</dd>
+                <dt>File hash</dt><dd><code>{{ gv.checksum_sha256 }}</code></dd>
+              </dl>
+            </details>
+          </div>
+          {% endfor %}
+        </div>
       </section>
       {% endif %}
       {% endif %}

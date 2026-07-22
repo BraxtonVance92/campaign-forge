@@ -1,9 +1,10 @@
-"""Tests for the CF-03 generated-video persistence, serving route, and
-honest display: an animatic is never presented as a finished render, the
-narration kind is always disclosed, and the artifact survives storage
-round-trips exactly."""
+"""Tests for CF-03 generated-video persistence, versioning, serving, and
+honest display: an animatic is never presented as a finished video, the
+narration kind is always disclosed, saving a new version never loses a
+prior one, and legacy single-record storage still loads."""
 
 import hashlib
+import json
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,19 +18,20 @@ from app.storage import InMemoryStorage
 
 def _make_record(project_id="p1", source_id="s1", **overrides):
     video_bytes = overrides.pop("video_bytes", b"fake-mp4-bytes-for-testing")
+    filename = overrides.pop("filename", "test_animatic.mp4")
     base = dict(
         project_id=project_id,
         source_id=source_id,
         kind="animatic",
         narration_kind="synthetic-generic-tts",
         likeness_used=False,
-        filename="test_animatic.mp4",
+        filename=filename,
         size_bytes=len(video_bytes),
         checksum_sha256=hashlib.sha256(video_bytes).hexdigest(),
         duration_seconds=26.63,
         width=720,
         height=1280,
-        storage_key=repository.generated_video_file_key(project_id, source_id, "test_animatic.mp4"),
+        storage_key=repository.generated_video_file_key(project_id, source_id, filename),
         spec={"topic": "test", "shots": [{"line": 1}]},
         render_method="ffmpeg-storyboard-assembly",
     )
@@ -50,9 +52,47 @@ def test_generated_video_round_trip():
     assert storage.get_object(loaded.storage_key) == video_bytes
 
 
+def test_saving_v2_preserves_v1():
+    """Appending a second version must never overwrite or hide the first."""
+    storage = InMemoryStorage()
+    v1, v1_bytes = _make_record(filename="v1.mp4", video_bytes=b"v1-bytes")
+    v2, v2_bytes = _make_record(filename="v2.mp4", video_bytes=b"v2-bytes-improved")
+    repository.save_generated_video(storage, v1, v1_bytes)
+    repository.save_generated_video(storage, v2, v2_bytes)
+
+    records = repository.list_generated_video_records(storage, "p1", "s1")
+    assert [r.id for r in records] == [v1.id, v2.id]  # oldest first, both present
+    assert storage.get_object(v1.storage_key) == v1_bytes
+    assert storage.get_object(v2.storage_key) == v2_bytes
+    # Latest-by-default; by-id fetch works for both.
+    assert repository.get_generated_video_record(storage, "p1", "s1").id == v2.id
+    assert repository.get_generated_video_record(storage, "p1", "s1", v1.id).id == v1.id
+
+
+def test_legacy_single_record_still_loads():
+    """A record persisted under the pre-versioning single-record key (the
+    real V1 animatic) must still appear in the list and survive a V2 save."""
+    storage = InMemoryStorage()
+    legacy, legacy_bytes = _make_record(filename="legacy.mp4", video_bytes=b"legacy-bytes")
+    # Persist exactly as the old code did: bytes + single-record key.
+    storage.put_object(legacy.storage_key, legacy_bytes, legacy.content_type)
+    storage.put_object(
+        f"projects/p1/sources/s1/generated_video.json",
+        legacy.model_dump_json().encode("utf-8"),
+        "application/json",
+    )
+    assert [r.id for r in repository.list_generated_video_records(storage, "p1", "s1")] == [legacy.id]
+
+    v2, v2_bytes = _make_record(filename="v2.mp4", video_bytes=b"v2-bytes")
+    repository.save_generated_video(storage, v2, v2_bytes)
+    ids = [r.id for r in repository.list_generated_video_records(storage, "p1", "s1")]
+    assert ids == [legacy.id, v2.id]
+
+
 def test_generated_video_none_when_absent():
     storage = InMemoryStorage()
     assert repository.get_generated_video_record(storage, "p1", "s1") is None
+    assert repository.list_generated_video_records(storage, "p1", "s1") == []
 
 
 def test_generated_video_rejects_dishonest_kind():
@@ -60,18 +100,24 @@ def test_generated_video_rejects_dishonest_kind():
         _make_record(kind="totally-real-final-video")
 
 
-def test_generated_video_route_serves_bytes():
+def test_generated_video_route_serves_latest_and_by_id():
     storage = InMemoryStorage()
-    record, video_bytes = _make_record()
-    repository.save_generated_video(storage, record, video_bytes)
+    v1, v1_bytes = _make_record(filename="v1.mp4", video_bytes=b"v1-bytes")
+    v2, v2_bytes = _make_record(filename="v2.mp4", video_bytes=b"v2-bytes-improved")
+    repository.save_generated_video(storage, v1, v1_bytes)
+    repository.save_generated_video(storage, v2, v2_bytes)
 
     app.dependency_overrides[projects_routes.get_storage] = lambda: storage
     try:
         with TestClient(app) as client:
-            resp = client.get("/projects/p1/sources/s1/generated-video")
-            assert resp.status_code == 200
-            assert resp.content == video_bytes
-            assert resp.headers["content-type"].startswith("video/mp4")
+            latest = client.get("/projects/p1/sources/s1/generated-video")
+            assert latest.status_code == 200
+            assert latest.content == v2_bytes
+            by_id = client.get(f"/projects/p1/sources/s1/generated-video?video_id={v1.id}")
+            assert by_id.status_code == 200
+            assert by_id.content == v1_bytes
+            missing = client.get("/projects/p1/sources/s1/generated-video?video_id=nope")
+            assert missing.status_code == 404
     finally:
         app.dependency_overrides.clear()
 
@@ -87,7 +133,7 @@ def test_generated_video_route_404_when_absent():
         app.dependency_overrides.clear()
 
 
-def _render_with_video(generated_video):
+def _render_with_videos(generated_videos):
     project = Project(name="Video Test")
     source = SourceAsset(
         project_id=project.id, consent_id="c1", original_filename="clip.mp4",
@@ -97,22 +143,26 @@ def _render_with_video(generated_video):
     )
     return templates.get_template("project.html").render(
         project=project, source=source, result=None, extended_result=None,
-        generated_video=generated_video, storage_backend="in-memory-fake",
+        generated_videos=generated_videos, storage_backend="in-memory-fake",
     )
 
 
-def test_template_displays_animatic_with_honest_labels():
-    record, _ = _make_record()
-    html = _render_with_video(record)
-    assert "Generated animatic" in html
-    assert "not a finished video" in html
+def test_template_displays_versions_side_by_side_with_honest_labels():
+    v1, _ = _make_record(filename="v1.mp4")
+    v2, _ = _make_record(filename="v2.mp4")
+    html = _render_with_videos([v1, v2])
+    assert "Generated video experiments" in html
+    assert "2 VERSIONS" in html
+    assert "V1" in html and "V2" in html
+    assert "not finished videos" in html
     assert "no real likeness is used" in html
     assert "generic synthetic text-to-speech voice" in html
-    assert "<video" in html
-    assert f"/sources/{record.source_id}/generated-video" in html
+    assert html.count("<video") == 2
+    assert f"video_id={v1.id}" in html
+    assert f"video_id={v2.id}" in html
 
 
 def test_template_omits_video_section_when_absent():
-    html = _render_with_video(None)
-    assert "Generated animatic" not in html
+    html = _render_with_videos([])
+    assert "Generated video experiments" not in html
     assert "<video" not in html
