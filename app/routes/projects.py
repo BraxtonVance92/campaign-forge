@@ -7,6 +7,7 @@ project, one source, one analysis result, no unrelated UI.
 from __future__ import annotations
 
 import hashlib
+import re
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
@@ -236,20 +237,56 @@ def get_analysis_frame(
 
 @router.get("/projects/{project_id}/sources/{source_id}/generated-video")
 def get_generated_video(
+    request: Request,
     project_id: str,
     source_id: str,
     video_id: str | None = None,
     storage: StorageBackend = Depends(get_storage),
 ):
-    """Serve a generated video version by ?video_id=...; latest when omitted."""
+    """Serve a generated video version by ?video_id=...; latest when omitted.
+
+    Honors single-range HTTP Range requests so browser <video> players can
+    seek without re-downloading from the start; a malformed or unsatisfiable
+    range falls back per RFC 7233 (ignore, or 416 for out-of-bounds starts).
+    """
     record = repository.get_generated_video_record(storage, project_id, source_id, video_id)
     if record is None:
         raise HTTPException(status_code=404, detail="No generated video for this source.")
     video_bytes = storage.get_object(record.storage_key)
+    total = len(video_bytes)
+    common_headers = {
+        "Content-Disposition": f'inline; filename="{record.filename}"',
+        "Accept-Ranges": "bytes",
+    }
+
+    range_header = request.headers.get("range", "")
+    match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip())
+    if match and (match.group(1) or match.group(2)):
+        if match.group(1):
+            start = int(match.group(1))
+            end = min(int(match.group(2)), total - 1) if match.group(2) else total - 1
+        else:  # suffix form: bytes=-N (final N bytes)
+            start = max(total - int(match.group(2)), 0)
+            end = total - 1
+        if start >= total or start > end:
+            return Response(
+                status_code=416,
+                headers={**common_headers, "Content-Range": f"bytes */{total}"},
+            )
+        return Response(
+            content=video_bytes[start : end + 1],
+            status_code=206,
+            media_type=record.content_type,
+            headers={
+                **common_headers,
+                "Content-Range": f"bytes {start}-{end}/{total}",
+            },
+        )
+
     return Response(
         content=video_bytes,
         media_type=record.content_type,
-        headers={"Content-Disposition": f'inline; filename="{record.filename}"'},
+        headers=common_headers,
     )
 
 

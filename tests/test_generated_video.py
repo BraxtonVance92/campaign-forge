@@ -122,6 +122,46 @@ def test_generated_video_route_serves_latest_and_by_id():
         app.dependency_overrides.clear()
 
 
+def test_generated_video_route_honors_byte_ranges_for_seeking():
+    """Browser <video> seeking sends Range requests; the route must answer
+    206 with the exact slice, advertise Accept-Ranges, reject unsatisfiable
+    starts with 416, and ignore malformed range headers (200 full body)."""
+    storage = InMemoryStorage()
+    record, video_bytes = _make_record(video_bytes=b"0123456789abcdef")
+    repository.save_generated_video(storage, record, video_bytes)
+
+    app.dependency_overrides[projects_routes.get_storage] = lambda: storage
+    try:
+        with TestClient(app) as client:
+            url = "/projects/p1/sources/s1/generated-video"
+            full = client.get(url)
+            assert full.status_code == 200
+            assert full.headers["accept-ranges"] == "bytes"
+
+            part = client.get(url, headers={"Range": "bytes=4-7"})
+            assert part.status_code == 206
+            assert part.content == b"4567"
+            assert part.headers["content-range"] == "bytes 4-7/16"
+
+            open_ended = client.get(url, headers={"Range": "bytes=10-"})
+            assert open_ended.status_code == 206
+            assert open_ended.content == b"abcdef"
+
+            suffix = client.get(url, headers={"Range": "bytes=-3"})
+            assert suffix.status_code == 206
+            assert suffix.content == b"def"
+
+            past_end = client.get(url, headers={"Range": "bytes=99-"})
+            assert past_end.status_code == 416
+            assert past_end.headers["content-range"] == "bytes */16"
+
+            malformed = client.get(url, headers={"Range": "bytes=zzz"})
+            assert malformed.status_code == 200
+            assert malformed.content == video_bytes
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_generated_video_route_404_when_absent():
     storage = InMemoryStorage()
     app.dependency_overrides[projects_routes.get_storage] = lambda: storage
@@ -155,12 +195,36 @@ def test_template_displays_versions_side_by_side_with_honest_labels():
     assert "Generated video experiments" in html
     assert "2 VERSIONS" in html
     assert "V1" in html and "V2" in html
-    assert "not finished videos" in html
     assert "no real likeness is used" in html
     assert "generic synthetic text-to-speech voice" in html
     assert html.count("<video") == 2
     assert f"video_id={v1.id}" in html
     assert f"video_id={v2.id}" in html
+    # Both records are animatics, so both carry the per-version animatic label.
+    assert html.count("Animatic/storyboard — not a finished video.") == 2
+
+
+def test_template_disclosure_is_conditioned_per_version_not_shared():
+    """A preview-render version must NOT be labeled an animatic, and an
+    animatic must NOT be labeled a finished-concept preview — the honest
+    label is per-record, never a shared banner claiming all versions are
+    storyboards."""
+    v1, _ = _make_record(filename="v1.mp4")  # animatic
+    v2, _ = _make_record(filename="v2.mp4")  # animatic
+    v3, _ = _make_record(filename="v3.mp4", kind="preview-render",
+                         render_method="pil-motion-graphics+ffmpeg-mix")
+    html = _render_with_videos([v1, v2, v3])
+    assert "3 VERSIONS" in html
+    assert html.count("<video") == 3
+    assert f"video_id={v3.id}" in html
+    # Exactly two animatic labels (V1, V2) and exactly one preview label (V3).
+    assert html.count("Animatic/storyboard — not a finished video.") == 2
+    assert html.count("Finished-concept preview") == 1
+    # The old blanket claim that every version is an unfinished animatic is gone.
+    assert "These are animatics/storyboards, not finished videos" not in html
+    # The always-true disclosures still apply to every version.
+    assert "no real likeness is used in any of them" in html
+    assert "generic synthetic text-to-speech voice" in html
 
 
 def test_template_omits_video_section_when_absent():
