@@ -48,12 +48,16 @@ committed to git; **not uploaded anywhere during this packet**):
 - ~50.4s of continuous clean single-speaker speech (11 whisper segments,
   full transcript persisted in the CF-04 analysis run); no overlapping
   speakers or interruptions observed.
-- Framing: direct-to-camera, eye-level, medium chest-up, seated; face
-  frontal with slight body angle; 12 sampled frames persisted.
-- Lighting: neutral front key light on the face over a blue-lit hexagonal
-  backdrop; face well exposed, not color-cast.
-- Audio: clear voiced delivery; background noise not independently
-  measured; no music bed audible per analysis.
+- Framing (from CF-02 extended analysis + direct review of the 12
+  persisted frames, not from the CF-04 pipeline, which has no vision
+  model): direct-to-camera, eye-level, medium chest-up, seated; face
+  frontal with slight body angle.
+- Lighting (same provenance): neutral front key light on the face over a
+  blue-lit hexagonal backdrop; face well exposed, not color-cast.
+- Audio: clear voiced delivery per the whisper transcription quality;
+  background noise and any music bed were not independently measured —
+  suitability of the audio for voice cloning is assessed as likely but
+  unconfirmed until the provider accepts the sample.
 
 Sufficiency assessment against provider requirements is recorded in the
 provider-decision section below.
