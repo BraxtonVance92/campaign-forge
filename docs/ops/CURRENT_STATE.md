@@ -1,18 +1,19 @@
 # CampaignForge Current State
 
-Last updated: 2026-07-22 (PR #6 merged — CF-00 reconciliation/Execution Ledger adoption; PR #7 open, awaiting R1/R2 — CF-01 credential-readiness research; CF-01 remains blocked on credentials).
+Last updated: 2026-07-22 (PR #7 merged — CF-01 credential-readiness research; CF-02 executed live — real GMI probes found two account-level blockers, not a code defect; a local-fallback analysis pipeline built and proven on one real authorized video, pending R1/R2 on branch `feat/cf-02-extended-analysis`).
 
-## State: BLOCKED ON CREDENTIALS — CF-01 (first live, non-fabricated analysis, per docs/roadmap/CAMPAIGNFORGE_EXECUTION_LEDGER.md)
+## State: BLOCKED ON GMI ACCOUNT FUNDING/MODEL DEPLOYMENT — CF-02 real analysis produced via local fallback
 
-`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, the PR #5 UI refresh, and PR #6 (CF-00 reconciliation) are all `MERGED`. `main` is at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (merge commit for PR #6). PR #7 (CF-01 research: Execution Ledger adoption, direct-bytes research, this file's own contradiction fix) is open, CI-passing, awaiting R1/R2 exact-SHA review before merge. The full upload → analyze → persist → display flow is implemented and tested end-to-end; the only remaining gap is that no real `GMI_API_KEY` or Backblaze B2 credentials are present in this environment, so every real analysis attempt honestly reports itself as blocked rather than fabricating a result. See "Blocker" and "Founder setup instruction" below for exactly what to do to unblock this.
+`CF-BOOT-001`, `CF-VERIFY-001`, `CF-RUN-001`, the PR #5 UI refresh, PR #6 (CF-00), and PR #7 (CF-01) are all `MERGED`. `main` is at `220d7fca8572e5bbeff6b4607f2983ffac8c056d` (merge commit for PR #7). `CF-02` (the real live provider probe) has been executed for real against the founder's actual GMI credential and one real authorized video: the originally-coded model (`nvidia/nemotron-3-nano-omni`) is not deployed on this account (HTTP 404), and two other real, unrelated models (`openai/gpt-4o-mini`, `google/gemini-3.1-flash-lite-preview`) both returned HTTP 402 "Insufficient balance" — an account-wide funding gate, not a code or format defect. Full sanitized evidence: `docs/verification/CF-02-experiment-receipt.md`, `docs/verification/CF-02-model-candidates.md`. Rather than stop, a local fallback pipeline (real `ffmpeg` audio/frame extraction + real `faster-whisper` transcription + direct visual frame review) produced a genuine, non-fabricated, timestamped analysis of the same real video, persisted and displayed on the website, honestly labeled as a local-fallback result (not GMI) and distinct from the three failed GMI attempts, which remain visibly recorded on the same page. This work is on branch `feat/cf-02-extended-analysis`, pending R1/R2 exact-SHA review before merge.
 
 ### Repository-verified (as of this inspection)
 
 - Repository: `BraxtonVance92/campaign-forge`.
 - Default branch: `main`.
-- Main head SHA: `f201ba5fbca15326f81ef3605dd281c88f0d0f4b`.
-- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`. PR #6: `MERGED`. PR #7: `OPEN` (draft, CI passing, awaiting R1/R2).
-- CI on `main` post-merge: `SUCCESS` at `f201ba5fbca15326f81ef3605dd281c88f0d0f4b` (https://github.com/BraxtonVance92/campaign-forge/actions/runs/29874473119).
+- Main head SHA: `220d7fca8572e5bbeff6b4607f2983ffac8c056d`.
+- PR #1: `MERGED`. PR #2: `MERGED`. PR #3: `MERGED`. PR #4: `CLOSED` (unmerged, superseded — see D-021). PR #5: `MERGED`. PR #6: `MERGED`. PR #7: `MERGED`.
+- CI on `main` post-merge: `SUCCESS` at `220d7fca8572e5bbeff6b4607f2983ffac8c056d` (https://github.com/BraxtonVance92/campaign-forge/actions/runs/29935000188).
+- Open branch (not yet a PR at time of writing): `feat/cf-02-extended-analysis` — extended analysis model/route/template, base64 fallback, real CF-02 experiment receipts, local-fallback pipeline result. 102 tests passing.
 - The exact current candidate SHA for any future in-flight branch is not recorded in this file — see the standing rationale in prior revisions of this file and in PR descriptions; it is maintained in the relevant PR's metadata (`headRefOid`) and checkpoint receipts.
 - `main` now contains the seven canonical `docs/` files, `docs/verification/CF-VERIFY-001.md`, two workflows (`cf-verify-001.yml` — prepared, not executed; `cf-run-001-tests.yml` — real, passing), and the full `app/`/`tests/` runtime application described below, including the PR #5 UI refresh (desktop layout width fix, restructured result display, accessibility fixes).
 - Render reports repository access to `BraxtonVance92/campaign-forge`. No Render service has been created or verified as existing.

@@ -115,6 +115,21 @@ def test_successful_result_marks_verified_shape_without_experimental_badge():
     assert "Experimental analysis" not in html
 
 
+def test_local_fallback_result_shows_honest_non_gmi_badge_not_experimental_badge():
+    """A local-fallback-pipeline result (GMI blocked/unavailable) must never
+    be labeled with the GMI-specific 'Experimental analysis' badge -- that
+    would misleadingly imply the result came from an unverified GMI call
+    when it did not come from GMI at all."""
+    project, source = _make_project_and_source()
+    extended = _full_extended_analysis(
+        analysis_provider="local-fallback-pipeline",
+        analysis_model="faster-whisper-base+manual-frame-review",
+    )
+    html = _render_project_page(project, source, extended)
+    assert "Local fallback analysis, not GMI" in html
+    assert "Experimental analysis" not in html
+
+
 def test_successful_result_shows_honest_empty_state_for_empty_lists():
     """An empty list within a section (e.g. no missed/uncertain items found)
     must say so honestly, not render a blank list."""

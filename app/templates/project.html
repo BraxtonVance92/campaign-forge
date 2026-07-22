@@ -101,7 +101,8 @@
       {% else %}
       <section class="content-card results-card">
         <div class="section-heading"><span class="section-number complete">✓</span><div><h2>Detailed creator analysis</h2><p>Real, timestamped observations from the authorized source video.</p></div><span class="badge badge-success">Analyzed</span></div>
-        {% if not extended_result.request_shape_verified %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Experimental analysis</strong><p>This result came from an integration that still needs live request-shape verification. Treat it as directional, not final.</p></div></aside>{% endif %}
+        {% if extended_result.analysis_provider == "local-fallback-pipeline" %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Local fallback analysis, not GMI</strong><p>GMI Cloud could not produce a result for this video (see the failed-attempts section below), so this analysis was produced by a local pipeline instead: real audio transcription plus direct visual review of extracted frames. Treat it as directional, not final, and see the accuracy notes section for known gaps.</p></div></aside>
+        {% elif not extended_result.request_shape_verified %}<aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>Experimental analysis</strong><p>This result came from an integration that still needs live request-shape verification. Treat it as directional, not final.</p></div></aside>{% endif %}
 
         <div class="profile-sections extended-sections">
           {% for key, value in extended_result.sections.items() %}

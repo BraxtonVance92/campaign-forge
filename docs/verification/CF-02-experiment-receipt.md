@@ -43,4 +43,37 @@ Run outside the app to isolate whether the failure was video-input-specific or m
 
 **Unknown, not confirmed $0.** No GMI billing dashboard was checked (none is accessible from this environment). Provider behavior is consistent with these being free, pre-inference routing failures (a "no matching target server" 404 for a non-deployed model typically occurs before any model instance is invoked in inference-serving architectures like GMI's), which makes an actual charge unlikely for these three calls specifically — but this is an inference from behavior, not a verified statement from a billing record. Treat as "no recorded charge observed," not "confirmed $0."
 
-## Total real external calls made this session: 3 (all GMI Cloud, all diagnostic/pre-analysis; none of Phase 2's model probes below yet)
+## Phase 2 — model capability probes (real, 2026-07-22)
+
+Candidate ranking and rationale: `docs/verification/CF-02-model-candidates.md`. Probe image: `frame_03.jpg` (84,190 bytes), extracted from the same real authorized video at approximately 00:00:25.
+
+### Probe 1 — openai/gpt-4o-mini
+
+- Endpoint: `https://api.gmi-serving.com/v1/chat/completions`
+- Input type: base64 `data:image/jpeg;base64,...` image_url content block + short text prompt, `max_tokens: 150`
+- HTTP status: **402**
+- Sanitized response body: `{"error": "Insufficient balance"}`
+- Runtime: 0.95s
+- Usable output produced: no
+- **This is materially different from the nemotron 404**: the model is real/deployed (no "target server" routing error) but the account itself has no funded balance to run a paid call.
+
+### Probe 2 — google/gemini-3.1-flash-lite-preview
+
+- Same request shape and image, different vendor/model family, to confirm whether Probe 1's result was model-specific or account-wide.
+- HTTP status: **402**
+- Sanitized response body: `{"error": "Insufficient balance"}`
+- Runtime: 0.52s
+- Usable output produced: no
+- **Conclusion: confirmed account-wide, not model-specific.** No further model was probed live: repeating the same request shape against different models would return the identical account-level 402 with no new information, which is exactly the "do not waste money/requests repeating equivalent failing requests" instruction. Probes 3-5 (`openai/gpt-4o`, `google/gemini-3-flash-preview`, `anthropic/claude-haiku-4.5`) were not run for this reason.
+
+**Two independent GMI blockers are now confirmed, not one:**
+1. `nvidia/nemotron-3-nano-omni` (the originally-coded model) is not deployed on this account at all (404).
+2. Even a deployed, working model (`gpt-4o-mini`, confirmed real via the 402 rather than 404) cannot be called because the account has no funded balance (402, account-wide).
+
+Fixing blocker 2 (funding the account) would not by itself fix blocker 1, and vice versa. Both require founder action: either enabling/deploying a vision-capable model on this GMI account, or funding the account balance (previously bounded at a $20 prepaid maximum per D-017), or both.
+
+### Actual recorded spend (Phase 2)
+
+Unknown, not confirmed $0 -- same reasoning as Phase 1: a 402 "insufficient balance" response is, by definition, a rejection before any billable inference occurs (there is no balance to draw from), which makes a real charge for these two specific calls extremely unlikely -- but this remains an inference from provider behavior, not a verified billing statement.
+
+## Total real external calls made this session: 5 (all GMI Cloud: 3 diagnostic/routing checks in Phase 1, 2 real image-capability probes in Phase 2)
