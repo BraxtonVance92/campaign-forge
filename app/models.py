@@ -91,6 +91,35 @@ class CreatorProfile(BaseModel):
     request_shape_verified: bool = False
 
 
+class ExtendedCreatorAnalysis(BaseModel):
+    """A founder-directed CF-02 experiment (2026-07-22), alongside (not
+    replacing) CreatorProfile/docs/canon/PRODUCT_CANON.md's narrower
+    contract. The founder asked for far more resolution than that contract
+    captures -- timestamped transcript/word-choice, voice/delivery, body
+    movement, content structure, studio/atmosphere, a reproduction
+    specification, and per-finding confidence/classification.
+
+    `sections` is intentionally a flexible dict rather than dozens of
+    hand-typed fields: this is the FIRST real test of whether the provider
+    can produce this level of detail at all, and over-constraining the
+    shape before seeing a real response would risk silently dropping
+    real content that didn't fit a guessed schema. Persisted and
+    displayed as real data only when a real call actually parses as a
+    JSON object -- never fabricated or filled with placeholder content.
+    """
+
+    project_id: str
+    source_id: str
+    sections: dict = Field(min_length=1)
+
+    analysis_provider: str
+    analysis_model: str
+    prompt_schema_version: str
+    source_asset_hash: str
+    created_at: datetime = Field(default_factory=utcnow)
+    request_shape_verified: bool = False
+
+
 class AnalysisBlockedRecord(BaseModel):
     """Persisted in place of a CreatorProfile when the real call could not run."""
 

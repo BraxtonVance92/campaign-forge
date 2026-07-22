@@ -1,6 +1,6 @@
 """Focused UI/route tests for the visual-refresh states that the existing
 suite never exercised: the successful-analysis template (no prior test
-constructed a real CreatorProfile and rendered it), long-content
+constructed a real ExtendedCreatorAnalysis and rendered it), long-content
 handling, loading-state markup, and a broken-route scan cross-checking
 every template href/form action against FastAPI's real route table.
 """
@@ -8,15 +8,18 @@ every template href/form action against FastAPI's real route table.
 import re
 
 from app.main import app, templates
-from app.models import AnalysisBlockedRecord, CreatorProfile, EvidenceItem, Project, SourceAsset
+from app.models import AnalysisBlockedRecord, ExtendedCreatorAnalysis, Project, SourceAsset
 from tests.conftest import make_fake_mp4_bytes
 from tests.test_upload_validation import create_project
 
 
-def _render_project_page(project, source, result, storage_backend="in-memory-fake"):
+def _render_project_page(project, source, extended_result, storage_backend="in-memory-fake"):
     template = templates.get_template("project.html")
     return template.render(
-        project=project, source=source, result=result, storage_backend=storage_backend
+        project=project,
+        source=source,
+        extended_result=extended_result,
+        storage_backend=storage_backend,
     )
 
 
@@ -35,58 +38,71 @@ def _make_project_and_source():
     return project, source
 
 
-def _full_profile(**overrides):
+def _full_extended_analysis(**overrides):
     base = dict(
         project_id="p1",
         source_id="s1",
-        audience="solo creators building a personal brand",
-        content_pillars=["productivity tips"],
-        voice_traits=["direct", "encouraging"],
-        hook_patterns=["opens with a question"],
-        structure_patterns=["problem -> insight -> cta"],
-        visual_patterns=["handheld camera"],
-        cta_patterns=["ask viewers to comment"],
-        avoid=["overly corporate tone"],
-        evidence=[EvidenceItem(source_reference="0:03", observation="direct question to camera")],
-        confidence=0.42,
-        limitations=["based on a single example"],
+        sections={
+            "transcript": [
+                {"start_seconds": 0.0, "end_seconds": 5.4, "text": "Who's the best female real estate influencer?"}
+            ],
+            "word_choice_patterns": {
+                "favored_words_or_phrases": ["absolutely", "hamster wheel"],
+            },
+            "voice_and_delivery": {
+                "speaking_speed": "fast, energetic",
+            },
+            "body_movement": {
+                "gestures": ["counting on fingers"],
+            },
+            "content_structure": {
+                "main_topic": "top 10 female real estate influencers",
+            },
+            "studio_and_atmosphere": {
+                "background_description": "blue hexagon-patterned wall",
+                "unknown_or_undeterminable": [],
+            },
+            "reproduction_specification": {
+                "camera_placement": "eye-level, medium shot",
+            },
+            "accuracy_notes": {
+                "missed_or_uncertain": [],
+                "observed_in_this_video_only": ["fast delivery pace"],
+            },
+        },
         analysis_provider="gmi-cloud",
         analysis_model="nvidia/nemotron-3-nano-omni",
-        prompt_schema_version="cf-run-001-v2",
+        prompt_schema_version="cf-02-extended-v1",
         source_asset_hash="deadbeef",
         request_shape_verified=False,
     )
     base.update(overrides)
-    return CreatorProfile(**base)
+    return ExtendedCreatorAnalysis(**base)
 
 
 def test_successful_result_renders_all_required_sections_from_real_fields():
     project, source = _make_project_and_source()
-    profile = _full_profile()
-    html = _render_project_page(project, source, profile)
+    extended = _full_extended_analysis()
+    html = _render_project_page(project, source, extended)
 
-    # The required groupings per the redesign brief, built only from real
-    # persisted CreatorProfile fields -- never fabricated copy.
-    for heading in ["Content patterns", "Tone", "Hooks", "Visual style", "Recommendations"]:
+    # Section headings come from the real persisted keys -- never fabricated
+    # copy -- title-cased for display.
+    for heading in [
+        "Transcript", "Word Choice Patterns", "Voice And Delivery",
+        "Body Movement", "Content Structure", "Studio And Atmosphere",
+        "Reproduction Specification", "Accuracy Notes",
+    ]:
         assert heading in html
-    assert "Audience" in html and profile.audience in html
-    assert "Confidence" in html and "0.42" in html
-    assert "productivity tips" in html  # content_pillars
-    # Jinja2 autoescaping renders "->" as "-&gt;" -- correct behavior for
-    # provider-sourced text (defends against XSS in analysis output), so the
-    # assertion checks the escaped form actually sent to the browser.
-    assert "problem -&gt; insight -&gt; cta" in html  # structure_patterns, merged into content patterns
-    assert "direct" in html and "encouraging" in html  # voice_traits (Tone)
-    assert "opens with a question" in html  # hook_patterns
-    assert "handheld camera" in html  # visual_patterns
-    assert "ask viewers to comment" in html  # cta_patterns
-    assert "overly corporate tone" in html  # avoid
-    assert "based on a single example" in html  # limitations
+    assert "Who&#39;s the best female real estate influencer?" in html or "Who's the best female real estate influencer?" in html
+    assert "hamster wheel" in html
+    assert "fast, energetic" in html
+    assert "counting on fingers" in html
+    assert "blue hexagon-patterned wall" in html
 
     # Technical/debug info must be tucked inside a disclosure, not front-and-center.
     tech_block = html[html.index('<details class="technical-details">'):]
     assert "nvidia/nemotron-3-nano-omni" in tech_block
-    assert "cf-run-001-v2" in tech_block
+    assert "cf-02-extended-v1" in tech_block
 
     # Experimental marker must be visible when request_shape_verified is False.
     assert "Experimental analysis" in html
@@ -94,21 +110,18 @@ def test_successful_result_renders_all_required_sections_from_real_fields():
 
 def test_successful_result_marks_verified_shape_without_experimental_badge():
     project, source = _make_project_and_source()
-    profile = _full_profile(request_shape_verified=True)
-    html = _render_project_page(project, source, profile)
+    extended = _full_extended_analysis(request_shape_verified=True)
+    html = _render_project_page(project, source, extended)
     assert "Experimental analysis" not in html
 
 
-def test_successful_result_shows_honest_empty_state_for_missing_optional_fields():
-    """Optional facets (voice_traits, hook_patterns, visual_patterns,
-    cta_patterns, avoid) can legitimately come back empty from a real
-    analysis. The UI must say so honestly, not render a blank section."""
+def test_successful_result_shows_honest_empty_state_for_empty_lists():
+    """An empty list within a section (e.g. no missed/uncertain items found)
+    must say so honestly, not render a blank list."""
     project, source = _make_project_and_source()
-    profile = _full_profile(
-        voice_traits=[], hook_patterns=[], visual_patterns=[], cta_patterns=[], avoid=[]
-    )
-    html = _render_project_page(project, source, profile)
-    assert html.count("Not identified in this analysis.") >= 3
+    extended = _full_extended_analysis()
+    html = _render_project_page(project, source, extended)
+    assert "none identified" in html
 
 
 def test_blocked_state_renders_long_error_message_without_crashing():
@@ -201,13 +214,13 @@ def test_no_broken_internal_links_or_form_actions_in_rendered_templates():
         return False
 
     project, source = _make_project_and_source()
-    profile = _full_profile()
+    extended = _full_extended_analysis()
 
     samples = [
         templates.get_template("home.html").render(),
         _render_project_page(project, None, None),
         _render_project_page(project, source, None),
-        _render_project_page(project, source, profile),
+        _render_project_page(project, source, extended),
     ]
 
     found_any_internal_link = False

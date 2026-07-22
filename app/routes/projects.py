@@ -143,17 +143,29 @@ def analyze_source(
         raise HTTPException(status_code=404, detail="Source not found.")
 
     video_url = repository.get_source_original_url(source, storage)
+    video_bytes = None
+    if not video_url.startswith("https://"):
+        # No hosted URL (B2 not configured) -- supply the raw bytes so
+        # GMIAnalysisClient can attempt the base64 data-URI fallback
+        # instead of blocking outright. See CF-01's research in
+        # docs/ops/ACTIVE_WORK_PACKET.md.
+        video_bytes = storage.get_object(source.storage_key)
     client = GMIAnalysisClient(settings)
     try:
-        profile = client.analyze(
+        # CF-02 (2026-07-22, founder-directed): the richer, timestamped,
+        # section-by-section analysis, not the narrower CreatorProfile
+        # contract -- see app/analysis.py's analyze_extended() docstring.
+        extended = client.analyze_extended(
             project_id=project_id,
             source_id=source_id,
             video_url=video_url,
             source_asset_hash=source.checksum_sha256,
+            video_bytes=video_bytes,
+            video_content_type=source.content_type,
         )
-        repository.save_profile(storage, profile)
+        repository.save_extended_analysis(storage, extended)
     except AnalysisBlockedError as exc:
-        # GMIAnalysisClient.analyze() guarantees every failure mode (missing
+        # GMIAnalysisClient guarantees every failure mode (missing
         # credential, unfetchable source, network error, HTTP error,
         # malformed response, contract validation failure) surfaces as this
         # one exception type with an already-sanitized message -- no raw
@@ -161,7 +173,7 @@ def analyze_source(
         blocked = AnalysisBlockedRecord(
             project_id=project_id, source_id=source_id, reason=str(exc)
         )
-        repository.save_blocked_record(storage, blocked)
+        repository.save_extended_blocked_record(storage, blocked)
 
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
@@ -176,10 +188,14 @@ def get_source_json(
     if source is None:
         raise HTTPException(status_code=404, detail="Source not found.")
     result = repository.get_analysis_result(storage, project_id, source_id)
+    extended_result = repository.get_extended_analysis(storage, project_id, source_id)
     return JSONResponse(
         {
             "source": source.model_dump(mode="json"),
             "analysis_result": result.model_dump(mode="json") if result else None,
+            "extended_analysis_result": (
+                extended_result.model_dump(mode="json") if extended_result else None
+            ),
         }
     )
 
@@ -198,10 +214,12 @@ def view_project(
     # so there is at most one to find -- no "latest" ambiguity to resolve.
     source = None
     result = None
+    extended_result = None
     if project.id:
         source = _find_existing_source(storage, project_id)
         if source is not None:
             result = repository.get_analysis_result(storage, project_id, source.id)
+            extended_result = repository.get_extended_analysis(storage, project_id, source.id)
 
     return templates.TemplateResponse(
         request,
@@ -210,6 +228,7 @@ def view_project(
             "project": project,
             "source": source,
             "result": result,
+            "extended_result": extended_result,
             "storage_backend": storage.name,
         },
     )
