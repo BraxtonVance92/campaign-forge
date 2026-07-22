@@ -120,6 +120,35 @@ class ExtendedCreatorAnalysis(BaseModel):
     request_shape_verified: bool = False
 
 
+class GeneratedVideoRecord(BaseModel):
+    """A generated video artifact tied to a project/source. `kind` is an
+    honest classification, never inflated: an animatic is not a final
+    render, and `narration_kind` records whether the voice is the real
+    creator, an authorized synthetic clone, or (as in CF-03's first
+    experiment) a clearly generic synthetic TTS voice with no relation to
+    the creator's identity."""
+
+    id: str = Field(default_factory=new_id)
+    project_id: str
+    source_id: str
+    kind: Literal["storyboard", "animatic", "preview-render", "final-render"]
+    narration_kind: Literal[
+        "none", "synthetic-generic-tts", "authorized-voice-clone", "original-recording"
+    ]
+    likeness_used: bool
+    filename: str
+    content_type: str = "video/mp4"
+    size_bytes: int
+    checksum_sha256: str
+    duration_seconds: float
+    width: int
+    height: int
+    storage_key: str
+    spec: dict = Field(min_length=1)
+    render_method: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class AnalysisBlockedRecord(BaseModel):
     """Persisted in place of a CreatorProfile when the real call could not run."""
 

@@ -124,6 +124,26 @@
         </details>
       </section>
       {% endif %}
+
+      {% if generated_video is not none %}
+      <section class="content-card">
+        <div class="section-heading"><span class="section-number">03</span><div><h2>Generated {{ generated_video.kind }}</h2><p>A first content experiment built from this project's real analysis.</p></div><span class="badge">{{ generated_video.kind | upper }}</span></div>
+        <aside class="notice notice-warning"><span class="notice-icon">!</span><div><strong>This is {% if generated_video.kind == "animatic" %}an{% else %}a{% endif %} {{ generated_video.kind }}, not a finished video{% if not generated_video.likeness_used %} — no real likeness is used{% endif %}</strong><p>{% if generated_video.narration_kind == "synthetic-generic-tts" %}The narration is a clearly generic synthetic text-to-speech voice with no relation to the creator's real voice — used because no voice-clone consent exists yet.{% elif generated_video.narration_kind == "none" %}This video has no narration.{% elif generated_video.narration_kind == "original-recording" %}The audio is the creator's original recording.{% else %}The narration uses an authorized voice clone.{% endif %} Visuals are storyboard graphics, not real footage.</p></div></aside>
+        <video controls preload="metadata" style="width:100%;max-width:360px;border-radius:12px;display:block;margin:16px auto;" src="/projects/{{ project.id }}/sources/{{ generated_video.source_id }}/generated-video"></video>
+        <details class="technical-details">
+          <summary>Render details</summary>
+          <dl>
+            <dt>Kind</dt><dd>{{ generated_video.kind }}</dd>
+            <dt>Narration</dt><dd>{{ generated_video.narration_kind }}</dd>
+            <dt>Likeness used</dt><dd>{{ generated_video.likeness_used }}</dd>
+            <dt>Duration</dt><dd>{{ generated_video.duration_seconds }}s</dd>
+            <dt>Dimensions</dt><dd>{{ generated_video.width }}x{{ generated_video.height }}</dd>
+            <dt>Render method</dt><dd>{{ generated_video.render_method }}</dd>
+            <dt>File hash</dt><dd><code>{{ generated_video.checksum_sha256 }}</code></dd>
+          </dl>
+        </details>
+      </section>
+      {% endif %}
       {% endif %}
     </main>
     <footer class="site-footer"><span>CampaignForge</span><span>Authorized content only.</span></footer>

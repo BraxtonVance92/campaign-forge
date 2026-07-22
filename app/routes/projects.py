@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from app import repository
@@ -200,6 +200,23 @@ def get_source_json(
     )
 
 
+@router.get("/projects/{project_id}/sources/{source_id}/generated-video")
+def get_generated_video(
+    project_id: str,
+    source_id: str,
+    storage: StorageBackend = Depends(get_storage),
+):
+    record = repository.get_generated_video_record(storage, project_id, source_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="No generated video for this source.")
+    video_bytes = storage.get_object(record.storage_key)
+    return Response(
+        content=video_bytes,
+        media_type=record.content_type,
+        headers={"Content-Disposition": f'inline; filename="{record.filename}"'},
+    )
+
+
 @router.get("/projects/{project_id}", response_class=HTMLResponse)
 def view_project(
     request: Request,
@@ -215,11 +232,13 @@ def view_project(
     source = None
     result = None
     extended_result = None
+    generated_video = None
     if project.id:
         source = _find_existing_source(storage, project_id)
         if source is not None:
             result = repository.get_analysis_result(storage, project_id, source.id)
             extended_result = repository.get_extended_analysis(storage, project_id, source.id)
+            generated_video = repository.get_generated_video_record(storage, project_id, source.id)
 
     return templates.TemplateResponse(
         request,
@@ -229,6 +248,7 @@ def view_project(
             "source": source,
             "result": result,
             "extended_result": extended_result,
+            "generated_video": generated_video,
             "storage_backend": storage.name,
         },
     )
