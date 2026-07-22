@@ -11,3 +11,10 @@ pytest>=8.0
 # versions actually exercised; no network service is called by either.
 imageio-ffmpeg==0.6.0
 faster-whisper==1.2.1
+# CF-V4 contest path: Genblaze orchestration SDK + GMI Cloud adapter,
+# pinned to the versions the zero-cost prep tests were written against
+# (canon: "current released Genblaze packages pinned to tested versions").
+genblaze==0.4.4
+genblaze-core==0.3.7
+genblaze-s3==0.3.6
+genblaze-gmicloud==0.3.4
