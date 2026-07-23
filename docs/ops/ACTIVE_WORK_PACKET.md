@@ -121,3 +121,12 @@ B2 credentials -> HeyGen $29 approval). Local reference candidates
 extracted and hashed 2026-07-23 (see
 `docs/verification/CF-V4-preproduction.md`, Reference sufficiency).
 Consumer: founder (blocker actions), then the maker session (runbook).
+
+Update 2026-07-23 (batch analysis, PR #17): five authorized reference
+videos ingested and analyzed locally ($0, nothing uploaded); frontal
+reference frames now exist; a GMI lip-sync route is PROPOSED as primary
+(pending founder ratification of face-footage-to-GMI exposure — see
+`docs/verification/CF-V4-batch-analysis-receipt.md`); the D-027 HeyGen
+likeness route remains the standing default until ratified. Blocker is
+now: consent artifact -> route ratification -> GMI $10 -> B2 credentials
+-> (route 2 only) HeyGen $29.
