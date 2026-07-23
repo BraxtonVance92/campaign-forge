@@ -142,3 +142,13 @@ from GMI's official quickstart
 artifact; (2) GMI funding confirmation. HeyGen is contingency-only.
 Open follow-ups: rotate the B2 application key (recommended after the
 echo incident); update CF-V4-runbook.md to reflect route 1 as primary.
+
+Update 2026-07-23 (D-029): pilot subject switched to founder Braxton Vance
+(self-authorized via his own recorded consent in the supplied videos).
+FIRST REAL generated video produced and verified: GMI voice clone + Kling
+identify-face/lip-sync of his real footage, locally composited with
+captions + disclosure, persisted to private B2. Receipt:
+docs/verification/CF-V4-braxton-first-render-receipt.md. Colton V4 remains
+deferred (still blocked on Colton's own consent). Open follow-ups
+unchanged: rotate B2 application key; optional extension to a full 25-40s
+Braxton cut (now proven feasible/funded).
