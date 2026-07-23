@@ -221,8 +221,21 @@ No paid call happens until the founder approves the exact $29 spend.
 
 - Voice clone: **sufficient** (~50s clean single-speaker speech ≥ 30s
   minimum).
-- Photo avatar (primary route): **sufficient** — one clean, frontal,
-  well-lit frame extracted locally from the authorized video.
+- Photo avatar (primary route): **corrected 2026-07-23 after direct
+  frame review — degraded, not clean-frontal.** Fine-grained sampling
+  (17 candidate frames, sharpness-ranked, top candidates visually
+  reviewed) found no clear front-facing frame: the creator is
+  consistently angled ~30-45 degrees toward an off-camera interviewer,
+  gaze off-lens, mid-speech, wearing cap and glasses, with burned-in
+  captions and third-party thumbnail faces (croppable). A best-available
+  Colton-only crop (18.50s) plus the full 50.5s voice WAV (peak
+  -0.58 dB, no clipping) were extracted locally, hashed, and persisted
+  in project-scoped storage (`v4_reference/reference_manifest.json`) —
+  **not uploaded anywhere**. Preferred fix at zero extra effort:
+  Colton's consent recording (already required, frontal, at-lens,
+  1080p+ per its spec) doubles as the photo-avatar reference frame —
+  one recording session yields the consent artifact, an ideal frontal
+  reference, and (if extended to 2+ min) Digital Twin footage.
 - Digital Twin (optional upgrade): **not sufficient** — requires one
   continuous ≥2 min (5 min recommended) take at ≥1080p/30fps. Smallest
   additional recording, only if the founder wants this upgrade: phone
