@@ -71,12 +71,23 @@ Full transcripts with timestamps: `reference_batch_2026-07-23/transcripts.json`.
 
 | Route | Verdict |
 |---|---|
-| **1. Existing-video dubbing / lip-sync (SELECTED)** | Genblaze → GMI: MiniMax voice clone generates the new script in Colton's voice (`minimax-audio-voice-clone-speech-2.6-hd`, first-class in the adapter), then **Kling Lip Sync** (`kling-identify-face` → `kling-lip-sync`, via the adapter's documented verbatim passthrough) re-syncs the mouth in a real continuous frontal segment (base: AQNLIgr 54.3–100.0s). Preserves Colton's REAL face motion, blinks, gestures, and identity — the strongest realism route — makes Genblaze/GMI genuinely load-bearing for BOTH generation steps (contest), and costs cents-level. Local composite then adds reframing, captions, disclosure, music. |
+| **1. Existing-video dubbing / lip-sync (PROPOSED PRIMARY — requires founder ratification, see below)** | Genblaze → GMI: MiniMax voice clone generates the new script in Colton's voice (`minimax-audio-voice-clone-speech-2.6-hd`, first-class in the adapter), then **Kling Lip Sync** (`kling-identify-face` → `kling-lip-sync`, via the adapter's documented verbatim passthrough) re-syncs the mouth in a real continuous frontal segment (base: AQNLIgr 54.3–100.0s). Preserves Colton's REAL face motion, blinks, gestures, and identity — the strongest realism route — makes Genblaze/GMI genuinely load-bearing for BOTH generation steps (contest), and costs cents-level. Local composite then adds reframing, captions, disclosure, music. |
 | 2. Photo-avatar (FALLBACK) | HeyGen Avatar IV from rank-1 frame + voice clone, $29 — now backed by a genuinely frontal frame. Used only if route 1's lip-sync quality fails review. |
 | 3. Digital Twin | **Blocked on resolution**: HeyGen requires ≥1080p training footage; all five files are 720x1280. Excluded without new footage (which this packet forbids requesting). |
 
-No route requires new work from Colton beyond the already-required consent
-artifact; no provider verification is bypassed.
+**Ratification required for route 1 (not a settled decision).** Route 1
+uploads a ~45s segment of Colton's **face footage** to GMI Cloud, whose
+media-retention/deletion policy is unpublished. That exceeds the founder's
+recorded retention acceptance, which is scoped verbatim to "Colton's
+reference audio sample," and departs from the D-027-ratified architecture
+("HeyGen (direct) for Colton's authorized likeness"). GMI performs no
+subject-level verification of its own for this route; the D-011 consent
+artifact (which names GMI as a permitted recipient of approved reference
+material) plus founder ratification is therefore the entire authorization
+chain, and both must exist before any face-footage upload. Until the
+founder explicitly ratifies route 1, **the D-027 architecture (route 2,
+HeyGen for likeness) remains the standing default.** No route requires new
+work from Colton beyond the already-required consent artifact.
 
 Honest capability states for route 1: MiniMax clone = adapter-registered +
 request-shape locally verified; Kling Lip Sync = **adapter passthrough
@@ -101,18 +112,26 @@ measured usage across five videos — not invented from one example.
 
 ## Cost impact
 
-Route 1 removes HeyGen from the first test: expected consumption
-**≈ $0.50–2.00 of a $10 GMI top-up** (voice clone + speech + identify-face
-+ lip-sync + ≤1 repair; stop condition unchanged: any single call >$5
-halts). HeyGen's $29 becomes contingency only. Maximum exposure for the
-first real test drops from ≈$42 to **≈$13**; the $50 ceiling and all
-gates are unchanged.
+If route 1 is ratified, HeyGen drops out of the first test. Decomposed
+first-test exposure under route 1: $10 GMI top-up (of which expected
+consumption ≈$0.50–2.00: voice clone + speech + identify-face + lip-sync
++ ≤1 repair) + ~$0 B2 at MB scale + ≤$3 tax/fees buffer = **≈$13
+maximum**, vs ≈$42 under the standing route 2 (HeyGen $29 + GMI $10 +
+≤$3). Stop condition unchanged (any single call >$5 halts); $50 ceiling
+and all D-011/D-027 gates unchanged.
 
-## Remaining blocker (unchanged in kind, smaller in size)
+## Remaining blocker
 
 1. Colton records the consent artifact (`CF-V4-consent-artifact.md`) —
-   note: with route 1, this recording no longer needs to double as the
-   avatar reference; existing footage suffices.
-2. Founder funds GMI $10.
-3. Founder configures B2 bucket-scoped credentials in `.env`.
-4. (Contingency only, on fallback:) HeyGen $29 approval.
+   with route 1 it no longer needs to double as the avatar reference;
+   existing footage suffices.
+2. **Founder decision:** either (a) ratify route 1 — explicitly accepting
+   that ~45s of Colton's face footage goes to GMI under its unpublished
+   retention posture (with the same post-run deletion request + recorded
+   outcome commitment as the audio sample), max first-test exposure ≈$13
+   — or (b) keep the standing D-027 route 2 (HeyGen likeness, ≈$42).
+   The ratification, either way, gets a DECISION_LOG row before
+   execution.
+3. Founder funds GMI $10.
+4. Founder configures B2 bucket-scoped credentials in `.env`.
+5. (Route 2 only:) HeyGen $29 approval.
