@@ -130,3 +130,10 @@ reference frames now exist; a GMI lip-sync route is PROPOSED as primary
 likeness route remains the standing default until ratified. Blocker is
 now: consent artifact -> route ratification -> GMI $10 -> B2 credentials
 -> (route 2 only) HeyGen $29.
+
+Update 2026-07-23 (D-028): founder ratified route 1 (GMI lip-sync). B2
+credentials configured and verified (write/read/delete round-trip
+all-true; values never displayed). Lip-sync request shape pinned from
+GMI's official quickstart. Remaining blocker, exactly: (1) Colton's
+recorded consent artifact; (2) GMI funding confirmation. HeyGen is
+contingency-only.
