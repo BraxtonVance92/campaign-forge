@@ -110,3 +110,14 @@ Claude may check `/health`, run the one real analysis once credentials and an au
 ### Next dependent block
 
 Once this slice is genuinely live-verified: extend to the Genblaze generation leg (script → voice → face/avatar video) per `docs/roadmap/CURRENT_ROADMAP.md` Phases 2-4, informed by what this real GMI call reveals about actual response shape and quality.
+
+## CF-V4 (active, 2026-07-23)
+
+Colton V4: first private video using his authorized likeness and voice.
+Preparation MERGED (PRs #14, #15; decision D-027). Generation BLOCKED on
+the four-part founder/Colton action in
+`docs/verification/CF-V4-runbook.md` (consent artifact -> GMI $10 ->
+B2 credentials -> HeyGen $29 approval). Local reference candidates
+extracted and hashed 2026-07-23 (see
+`docs/verification/CF-V4-preproduction.md`, Reference sufficiency).
+Consumer: founder (blocker actions), then the maker session (runbook).
